@@ -1,0 +1,447 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"><title>服务器GPU知识手册 | Crayon Personal Blog site</title><meta name="keywords" content="服务器GPU, GPU拓扑（Balance/Common/Cascade）, GPU核心参数（HBM/HGX/DGX/SXM）, CUDA Core, Tensor Core, NVLink, NVSwitch, GPU测试工具（nvidia-smi/shoc-master/gpu_burn）, XID错误, GPU算力计算（TFLOPS/TOPS）"><meta name="author" content="wangjun"><meta name="copyright" content="wangjun"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f7f9fe"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-touch-fullscreen" content="yes"><meta name="apple-mobile-web-app-title" content="服务器GPU知识手册"><meta name="application-name" content="服务器GPU知识手册"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="#f7f9fe"><meta property="og:type" content="article"><meta property="og:title" content="服务器GPU知识手册"><meta property="og:url" content="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/index.html"><meta property="og:site_name" content="Crayon Personal Blog site"><meta property="og:description" content="本文系统讲解服务器GPU的核心知识，涵盖基础概念（GPU拓扑结构、核心参数如HBM&amp;#x2F;HGX等）、关键技术（CUDA Core&amp;#x2F;Tensor Core&amp;#x2F;RT Core、NVLink互联技术）、环境安装与测试方法（nvidia-smi工具、shoc-master&amp;#x2F;cuda-samples等测试用例）、故"><meta property="og:locale" content="zh-CN"><meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_gpu.png"><meta property="article:author" content="wangjun"><meta property="article:tag" content="[&quot;计算机技术&quot;,&quot;服务器硬件&quot;,&quot;Linux系统&quot;,&quot;网络知识&quot;,&quot;IT技术分享&quot;,&quot;linux&quot;,&quot;GPU&quot;,&quot;CPU&quot;]"><meta name="twitter:card" content="summary"><meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_gpu.png"><meta name="description" content="本文系统讲解服务器GPU的核心知识，涵盖基础概念（GPU拓扑结构、核心参数如HBM&amp;#x2F;HGX等）、关键技术（CUDA Core&amp;#x2F;Tensor Core&amp;#x2F;RT Core、NVLink互联技术）、环境安装与测试方法（nvidia-smi工具、shoc-master&amp;#x2F;cuda-samples等测试用例）、故"><link rel="shortcut icon" href="/favicon.ico"><link rel="canonical" href="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/"><link rel="preconnect" href="//cdn.cbd.int"/><meta name="google-site-verification" content="xxx"/><meta name="baidu-site-verification" content="code-xxx"/><meta name="msvalidate.01" content="xxx"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.cbd.int/node-snackbar@0.1.16/dist/snackbar.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.cbd.int/@fancyapps/ui@5.0.28/dist/fancybox/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  linkPageTop: {"enable":true,"title":"与数百名博主无限进步","addFriendPlaceholder":"昵称（请勿包含博客等字样）：\n网站地址（要求博客地址，请勿提交个人主页）：\n头像图片url（请提供尽可能清晰的图片，我会上传到我自己的图床）：\n描述：\n站点截图（可选）：\n"},
+  peoplecanvas: {"enable":true,"img":"https://upload-bbs.miyoushe.com/upload/2024/07/27/125766904/ba62475f396df9de3316a08ed9e65d86_5680958632268053399..png"},
+  postHeadAiDescription: {"enable":true,"gptName":"AnZhiYu","mode":"local","switchBtn":false,"btnLink":"https://afdian.net/item/886a79d4db6711eda42a52540025c377","randomNum":3,"basicWordCount":1000,"key":"xxxx","Referer":"https://xx.xx/"},
+  diytitle: {"enable":true,"leaveTitle":"w(ﾟДﾟ)w 不要走！再看看嘛！","backTitle":"♪(^∇^*)欢迎肥来！"},
+  LA51: undefined,
+  greetingBox: undefined,
+  twikooEnvId: '',
+  commentBarrageConfig:undefined,
+  music_page_default: "nav_music",
+  root: '/',
+  preloader: {"source":3},
+  friends_vue_info: undefined,
+  navMusic: false,
+  mainTone: undefined,
+  authorStatus: undefined,
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":330},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    simplehomepage: false,
+    post: true
+  },
+  runtime: '天',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"copy":true,"copyrightEbable":false,"limitCount":50,"languages":{"author":"作者: wangjun","link":"链接: ","source":"来源: Crayon Personal Blog site","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。","copySuccess":"复制成功，复制和转载请标注本文地址"}},
+  lightbox: 'fancybox',
+  Snackbar: {"chs_to_cht":"你已切换为繁体","cht_to_chs":"你已切换为简体","day_to_night":"你已切换为深色模式","night_to_day":"你已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#2d3035","position":"bottom-left"},
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.cbd.int/flickr-justified-gallery@2.1.2/dist/fjGallery.min.js',
+      css: 'https://cdn.cbd.int/flickr-justified-gallery@2.1.2/dist/fjGallery.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isAnchor: false,
+  shortcutKey: undefined,
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  configTitle: 'Crayon Personal Blog site',
+  title: '服务器GPU知识手册',
+  postAI: '',
+  pageFillDescription: '服务器GPU知识手册, GPU简介, GPU的PLX三种拓扑, GPU的核心参数说明, 相关名词解释, 算力理论值计算, 英伟达GPU常见的各种核心, GPU-GPU的经典互联方案NVLink等技术解析, GPU基础环境安装, 查看GPU信息, , , Nvidia-smi（System Management Interface SMI）监控管理工具, GPU测试可以参考, Shoc-master, Cuda-samples cuda测试用例, gpu_burn压测, stream_vectorized_double_test, Peak tops, clublasMatmulBench, nvbandwidth, NCCL测试, batchCUBLAS, Unixbench测试, Dcgmi diag -r 4, DCGM实现GPU的性能分析, Fieldiag压测工具, NVQual, 故障问题, 国内外GPU技术发展趋势, 📚 参考资料服务器知识手册简介图形处理器专门处理图形核心处理器的运算单元的控制单元的缓存单元目前服务器卡用于大模型的训练和推理的三种拓扑拓扑直通虚拟化适合中小规模深度学习模型推理公有云和拓扑训练性能优异适用于多数的深度学习训练场景拓扑部分训练模型性能最优适用于多参数模型的大规模深度学习训练场景的核心参数说明相关名词解释显存是一种高带宽的堆叠内存技术实现更高的数据传输速率和更低的功耗是一个计算平台通过和将多个串连起来提供强大的运算能力模组底板板数据中心超级计算机硬件配置是固定的设计是开箱即用是的一种物理封装形式通常具有更高的功率和性能支持多扩展通过技术实现之间的高速通信算力理论值计算即每秒浮点运算次数通过降低精度而加快模型训练速度降低显存占用率的方法混合精度使用较低精度的浮点数来表示神经网络中的权重和激活值从而减少内存使用和计算开销进而加速训练过程算力计算公式核数单核主频单个周期浮点计算能力是每秒执行的万亿次浮点运算这是衡量计算性能的传统方式尤其用于需要大量浮点计算的任务如图形处理和科学计算是每秒执行的万亿次运算这个术语更常用于衡量和机器学习硬件的性能因为这些任务通常包括大量的整数和固定点运算而不是传统的浮点运算特别适用于评估深度学习推理任务的性能总的来说更多地关注浮点运算性能而则涵盖了更广泛的运算类型更适用于和深度学习应用英伟达常见的各种核心英伟达的参数中最常看到的核心类型通常用最小的运算单元表示自己的运算能力指的是一个执行基础运算的处理元件我们所说的数量通常对应的是计算单元的数量核心特别大用于机器学习加速它可以把整个矩阵都载入寄存器中批量运算实现十几倍的效率提升从架构发布以来奠定了英伟达在训练的领军地位每次升级都有新支持的数据类型正常数据中心级的核心是没有的主要是消费级显卡才为光线追踪运算添加了考虑到芯片的空间有限每个里面只有个光追核心为此还砍掉了大部分的可以极大地提升了游戏渲染效率的经典互联方案等技术解析是英伟达私有的芯片互联技术通常用于之间或者到是基于技术的芯片或者类似交换机的设备在主机内部是芯片跨节点互联就是搭载芯片的独立网络设备历代的版本和速率变化如下互联技术最新的是与前代相比通道数不变速率翻倍至年架构的正式发布和芯片分别来到和的版本单条链路速率翻倍来到单向数量还是条间的互联带宽翻倍至个对应个芯片每个芯片拥有个接口每个用条和个芯片互联如下图所示基础环境安装查看信息查看型号查看槽位开启持久模式查看是否为一拖八驱动下载安装监控管理工具这个命令会报告系统中每个的基本监控数据和硬件参数配置数据参考链接测试可以参考盘环境介绍单双精度浮点型算力测试基于等计算模式综合与方式进行算力计算兼容之前版本测试用例测试带宽单卡全卡测试参考值达到即可参考值达到即可参考链接压测针对多的压测程序使用程序每个分配一个进程一个进程用于跟踪的温度可用情况下另一个进程用于报告进度每个进程分配的可用内存初始化个随机的矩阵并持续对它们执行高效的矩阵乘法例程并将结果存储在分配的内存中浮点数和双精度数均支持通过将新计算的结果与上先前的计算结果进行比较来检查计算的正确性这样始终处于繁忙状态而处于空闲状态错误计算的数量将返回并与迄今为止执行的操作数量和温度一起报告给用户三天压测一周抓取压测温度功耗最后查看参考链接提供的基于优化的测试工具测试单个的显存带宽参考链接提供的算力测试工具实现实现只兼容架构库提供用于测试单个的性能参考链接是一个用于测量带宽的工具用于测量不同链接上各种模式下的带宽单向测试测量从到的带宽双向测试同时测量两个方向上的带宽参考链接测试库测试说明测试是用于评估在执行线性代数运算时的性能的工具是提供的一个库它实现了在上运行的基本线性代数运算比如矩阵乘法向量点乘等参考链接测试是一个基准测试工具它通过一系列测试来评估系统的性能测试套件包括对内存磁盘系统调用等的测试是中的一个参数它用于控制测试中数据复制的最大次数软件包链接提供了系统级的英伟达卡检测工具采用和的诊断级别检测软件方面的检测参考链接测试使用在与直接数据传输的效率验收新服务器的时候常用实现的性能分析是的命令行程序可以用来采集各类子资源的利用率数据揭示的数据比更详细也更便于对接监控系统比如主要可用它来看模型训练过程中的带宽使用情况上存在一些硬件计数器这些计数器可以用来收集一些设备级别的性能指标例如利用率内存使用情况等借助提供的库或工具能够查询这些硬件层提供的指标是一套用于管理和监控数据中心的工具集是一套用于在集群环境中管理和监控数据中心的工具它包括主动健康监控全面诊断系统警报和治理策略包括电源和时钟管理诊断是一款运行状况检查工具可以检查基本的运行状况包括是否存在错误问题带宽问题以及运行程序的常见问题压测工具当前官方以压测结果作为的标准不同的都有匹配的工具这些工具需要在哪里进行获取工具可以运行在环境或者大多数系统只支持支持的硬件故障问题消息是来自驱动程序的错误报告该报告打印到操作系统的内核日志或事件日志上指示硬件问题软件问题或用户应用程序问题常见的事件常见原因一般为用户应用程序故障通常这是一个数组下标越界错误也有可能是非法指令非法寄存器等其他情况极少数情况下会出现硬件故障或者软件错误导致常见原因一般为应用程序级别故障当上报故障时当芯片上的应用程序进行非法地址访问时会触发此类故障并记录常见原因一般是硬件问题当控制器报告故障时会记录此事件该控制器通过总线管理驱动程序和之间的通信流这些故障主要涉及的质量问题一般不是由用户应用程序操作引起的解决方式联合硬件运维处理常见原因基本是用户应用程序故障不影响的健康状况解决方式联合开发同事处理常见原因通常这并代表发生故障用户程序退出中止都会导致此类事件常见原因怀疑硬件故障当检测到不可修正的错误会记录该事件常见原因显存故障常见于硬件故障当应用程序遭遇到显存硬件错误时自纠错机制会将错误的内存区域或者和信息需要记录到中才能永久生效系列显卡开始支持系列之前的显卡例如支持解决方式联合硬件同事排查常见原因多半为硬件故障多卡之间使用进行通讯时出现问题链路故障或者卡故障都会导致解决方式可自行通过或者重启节点进行恢复如果此时还无法恢复需要进行维修处理常见原因多半是硬件问题具体现象为当驱动尝试通过总线访问访问失败此事件通常由链路上的硬件故障引起导致由于链路中断而无法访问解决方式硬件维修常见原因当驱动程序因违反使用导致更新失败大多数情况下这并不是软件驱动故障常见原因当应用程序遭遇到不可纠正的显存错误时错误抑制机制会尝试将错误抑制在踩到硬件故障的应用程序而不会让错误导致上的所有应用程序受到影响当抑制机制成功抑制错误时会产生事件仅影响遭遇了不可纠正错误的应用程序代表抑制失败此时表明运行在该上的所有应用程序都已受到影响解决方式联合硬件同事处理常见原因硬件故障解决方式恢复最近所有的系统硬件修改并冷启动系统需联系硬件处理常见原因当在的核心上运行的代码中发生错误或在等待的核心响应消息时发生超时时解决方式可以尝试重启节点或者重置如果还不行联系硬件处理参考链接国内外技术发展趋势参考资料相关规格参数消费卡相关规格参数全面介绍一文搞懂服务器内部互联技术和带宽计算方式英伟达文档',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2025-05-30 11:30:54',
+  postMainColor: '',
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Crayon Personal Blog site" type="application/atom+xml">
+</head><body data-type="anzhiyu"><div id="web_bg"></div><div id="an_music_bg"></div><div id="loading-box" onclick="document.getElementById(&quot;loading-box&quot;).classList.add(&quot;loaded&quot;)"><div class="loading-bg"><img class="loading-img nolazyload" alt="加载头像" src="https://avatars.githubusercontent.com/u/17792594?v=4&amp;size=64"/><div class="loading-image-dot"></div></div></div><script>const preloader = {
+  endLoading: () => {
+    document.getElementById('loading-box').classList.add("loaded");
+  },
+  initLoading: () => {
+    document.getElementById('loading-box').classList.remove("loaded")
+  }
+}
+window.addEventListener('load',()=> { preloader.endLoading() })
+setTimeout(function(){preloader.endLoading();},10000)
+
+if (true) {
+  document.addEventListener('pjax:send', () => { preloader.initLoading() })
+  document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+}</script><link rel="stylesheet" href="https://cdn.cbd.int/anzhiyu-theme-static@1.1.10/progress_bar/progress_bar.css"/><script async="async" src="https://cdn.cbd.int/pace-js@1.2.4/pace.min.js" data-pace-options="{ &quot;restartOnRequestAfter&quot;:false,&quot;eventLag&quot;:false}"></script><div class="post" id="body-wrap"><header class="not-top-img" id="page-header"><nav id="nav"><div id="nav-group"><span id="blog_name"><a id="site-name" href="/" accesskey="h"><div class="title">Crayon Personal Blog site</div><i class="anzhiyufont anzhiyu-icon-house-chimney"></i></a></span><div class="mask-name-container"><div id="name-container"><a id="page-name" href="javascript:anzhiyu.scrollToDest(0, 500)">PAGE_NAME</a></div></div><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/archives/"><span> 文章</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/link/"><span> 友链</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/about/"><span> 关于</span></a></div></div></div><div id="nav-right"><div class="nav-button" id="randomPost_button"><a class="site-page" onclick="toRandomPost()" title="随机前往一个文章" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-dice"></i></a></div><input id="center-console" type="checkbox"/><label class="widget" for="center-console" title="中控台" onclick="anzhiyu.switchConsole();"><i class="left"></i><i class="widget center"></i><i class="widget right"></i></label><div id="console"><div class="console-card-group-reward"><ul class="reward-all console-card"><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg" target="_blank"><img class="post-qr-code-img" alt="wechat" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg"/></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg" target="_blank"><img class="post-qr-code-img" alt="alipay" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div><div class="console-card-group"><div class="console-card-group-left"><div class="console-card" id="card-newest-comments"><div class="card-content"><div class="author-content-item-tips">互动</div><span class="author-content-item-title"> 最新评论</span></div><div class="aside-list"><span>正在加载中...</span></div></div></div><div class="console-card-group-right"><div class="console-card tags"><div class="card-content"><div class="author-content-item-tips">兴趣点</div><span class="author-content-item-title">寻找你感兴趣的领域</span><div class="card-tags"><div class="item-headline"></div><div class="card-tag-cloud"><a href="/tags/DDR/" style="font-size: 1.05rem;">DDR<sup>1</sup></a><a href="/tags/ECC/" style="font-size: 1.05rem;">ECC<sup>1</sup></a><a href="/tags/GPU%E5%8F%82%E6%95%B0/" style="font-size: 1.05rem;">GPU参数<sup>1</sup></a><a href="/tags/GPU%E6%8A%80%E6%9C%AF/" style="font-size: 1.05rem;">GPU技术<sup>1</sup></a><a href="/tags/GPU%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD/" style="font-size: 1.05rem;">GPU故障诊断<sup>1</sup></a><a href="/tags/GPU%E6%B5%8B%E8%AF%95/" style="font-size: 1.05rem;">GPU测试<sup>1</sup></a><a href="/tags/HBM/" style="font-size: 1.05rem;">HBM<sup>1</sup></a><a href="/tags/NVLink/" style="font-size: 1.05rem;">NVLink<sup>1</sup></a><a href="/tags/cpu%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0/" style="font-size: 1.05rem;">cpu性能参数<sup>1</sup></a><a href="/tags/cpu%E6%9E%B6%E6%9E%84/" style="font-size: 1.05rem;">cpu架构<sup>1</sup></a><a href="/tags/cpu%E6%B5%8B%E8%AF%95%E8%B0%83%E4%BC%98/" style="font-size: 1.05rem;">cpu测试调优<sup>1</sup></a><a href="/tags/linux/" style="font-size: 1.05rem;">linux<sup>1</sup></a><a href="/tags/lspci/" style="font-size: 1.05rem;">lspci<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E6%8A%80%E6%9C%AF/" style="font-size: 1.05rem;">内存技术<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E6%B5%8B%E8%AF%95/" style="font-size: 1.05rem;">内存测试<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" style="font-size: 1.05rem;">内存管理<sup>1</sup></a><a href="/tags/%E5%91%BD%E4%BB%A4/" style="font-size: 1.05rem;">命令<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU/" style="font-size: 1.05rem;">服务器CPU<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU/" style="font-size: 1.05rem;">服务器GPU<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98/" style="font-size: 1.05rem;">服务器内存<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" style="font-size: 1.05rem;">服务器硬件<sup>1</sup></a></div></div><hr/></div></div><div class="console-card history"><div class="item-headline"><i class="anzhiyufont anzhiyu-icon-box-archiv"></i><span>文章</span></div><div class="card-archives"><div class="item-headline"><i class="anzhiyufont anzhiyu-icon-archive"></i><span>归档</span></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2025/05/"><span class="card-archive-list-date">五月 2025</span><div class="card-archive-list-count-group"><span class="card-archive-list-count">4</span><span>篇</span></div></a></li></ul></div><hr/></div></div></div><div class="button-group"><div class="console-btn-item" id="consoleHideAside" onclick="anzhiyu.hideAsideBtn()" title="边栏显示控制"><a class="asideSwitch"><i class="anzhiyufont anzhiyu-icon-arrows-left-right"></i></a></div></div><div class="console-mask" onclick="anzhiyu.hideConsole()" href="javascript:void(0);"></div></div><div class="nav-button" id="nav-totop"><a class="totopbtn" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-arrow-up"></i><span id="percent" onclick="anzhiyu.scrollToDest(0,500)">0</span></a></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);" title="切换"><i class="anzhiyufont anzhiyu-icon-bars"></i></a></div></div></div></nav></header><main id="blog-container"><div class="layout" id="content-inner"><div id="post"><div id="post-info"><div id="post-firstinfo"><div class="meta-firstline"><a class="post-meta-original">原创</a><span class="post-meta-categories"><span class="post-meta-separator"></span><i class="anzhiyufont anzhiyu-icon-inbox post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" itemprop="url">服务器硬件</a></span><span class="article-meta tags"><a class="article-meta__tags" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>服务器GPU</span></a><a class="article-meta__tags" href="/tags/GPU%E6%8A%80%E6%9C%AF/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>GPU技术</span></a><a class="article-meta__tags" href="/tags/GPU%E6%B5%8B%E8%AF%95/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>GPU测试</span></a><a class="article-meta__tags" href="/tags/NVLink/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>NVLink</span></a><a class="article-meta__tags" href="/tags/GPU%E5%8F%82%E6%95%B0/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>GPU参数</span></a><a class="article-meta__tags" href="/tags/GPU%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD/" tabindex="-1" itemprop="url"> <span> <i class="anzhiyufont anzhiyu-icon-hashtag"></i>GPU故障诊断</span></a></span></div></div><h1 class="post-title" itemprop="name headline">服务器GPU知识手册</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="anzhiyufont anzhiyu-icon-calendar-days post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" itemprop="dateCreated datePublished" datetime="2025-05-30T03:30:54.000Z" title="发表于 2025-05-30 11:30:54">2025-05-30</time><span class="post-meta-separator"></span><i class="anzhiyufont anzhiyu-icon-history post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" itemprop="dateCreated datePublished" datetime="2025-05-30T03:30:54.000Z" title="更新于 2025-05-30 11:30:54">2025-05-30</time></span></div><div class="meta-secondline"><span class="post-meta-separator">       </span><span class="post-meta-position" title="作者IP属地为长沙"><i class="anzhiyufont anzhiyu-icon-location-dot"></i>长沙</span></div></div></div><article class="post-content" id="article-container" itemscope itemtype="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/"><header><a class="post-meta-categories" href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" itemprop="url">服务器硬件</a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU/" tabindex="-1" itemprop="url">服务器GPU</a><a href="/tags/GPU%E6%8A%80%E6%9C%AF/" tabindex="-1" itemprop="url">GPU技术</a><a href="/tags/GPU%E6%B5%8B%E8%AF%95/" tabindex="-1" itemprop="url">GPU测试</a><a href="/tags/NVLink/" tabindex="-1" itemprop="url">NVLink</a><a href="/tags/GPU%E5%8F%82%E6%95%B0/" tabindex="-1" itemprop="url">GPU参数</a><a href="/tags/GPU%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD/" tabindex="-1" itemprop="url">GPU故障诊断</a><h1 id="CrawlerTitle" itemprop="name headline">服务器GPU知识手册</h1><span itemprop="author" itemscope itemtype="http://schema.org/Person">wangjun</span><time itemprop="dateCreated datePublished" datetime="2025-05-30T03:30:54.000Z" title="发表于 2025-05-30 11:30:54">2025-05-30</time><time itemprop="dateCreated datePublished" datetime="2025-05-30T03:30:54.000Z" title="更新于 2025-05-30 11:30:54">2025-05-30</time></header><h1 id="服务器GPU知识手册"><a href="#服务器GPU知识手册" class="headerlink" title="服务器GPU知识手册"></a>服务器GPU知识手册</h1><h2 id="GPU简介"><a href="#GPU简介" class="headerlink" title="GPU简介"></a>GPU简介</h2><p>GPU，Graphic Processing Unit图形处理器，专门处理图形核心处理器，90%的ALU运算单元，5%的Control控制单元，5%的Cache缓存单元，目前服务器GPU卡用于大模型的训练和推理</p>
+<h2 id="GPU的PLX三种拓扑"><a href="#GPU的PLX三种拓扑" class="headerlink" title="GPU的PLX三种拓扑"></a>GPU的PLX三种拓扑</h2><ul>
+<li>Balance拓扑：GPU直通虚拟化，适合中&#x2F;小规模深度学习模型，推理，公有云和HPC</li>
+<li>Common拓扑：AI训练性能优异，适用于多数的深度学习训练场景</li>
+<li>Casecade拓扑：部分AI训练模型性能最优，适用于多参数模型的大规模深度学习训练场景</li>
+</ul>
+<h2 id="GPU的核心参数说明"><a href="#GPU的核心参数说明" class="headerlink" title="GPU的核心参数说明"></a>GPU的核心参数说明</h2><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/XtumbbhCOo1A8JxXK5IcPqVbnmb.png" src-width="968" src-height="421" align="center"/>
+
+<h2 id="相关名词解释"><a href="#相关名词解释" class="headerlink" title="相关名词解释"></a>相关名词解释</h2><p>HBM：High Bandwidth Memory显存，是一种高带宽的3D堆叠内存技术，实现更高的数据传输速率和更低的功耗</p>
+<p>HGX：High-Performance GPU extended，是一个计算平台通过NVLink和NVSwitch将多个GPU串连起来提供强大的AI运算能力，A800模组底板，delta板+nvswitch+SXM&#x3D;HGX</p>
+<p>DGX：Data Center GPU数据中心，AI超级计算机硬件配置是固定的，设计是开箱即用</p>
+<p>SXM：Tesla Scalable X-Module是NVIDIA Tesla GPU的一种物理封装形式，SXM GPU通常具有更高的功率和性能，支持多GPU扩展，通过NVLink技术实现GPU之间的高速通信</p>
+<h2 id="算力理论值计算"><a href="#算力理论值计算" class="headerlink" title="算力理论值计算"></a>算力理论值计算</h2><p>TFLOPS，即每秒浮点运算次数</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/PjSRbkRKDorQo1xFYaZcqsnKnbd.png" src-width="1714" src-height="561" align="center"/>
+
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/YnUFb8tH9oPdF3xo5TicXn1Vnfe.png" src-width="1558" src-height="321" align="center"/>
+
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/WsgZbJQ9Mo1zRmxGsMFc31a4n4g.png" src-width="875" src-height="596" align="center"/>
+
+<p>通过降低精度而加快模型训练速度、降低显存占用率的方法——混合精度，使用较低精度的浮点数来表示神经网络中的权重和激活值，从而减少内存使用和计算开销，进而加速训练过程。</p>
+<p>算力计算公式：Flops&#x3D;CPU核数<em>单核主频</em>CPU单个周期浮点计算能力</p>
+<p>TFLOPS：TFLOPS是每秒执行的万亿次浮点运算。这是衡量计算性能的传统方式，尤其用于需要大量浮点计算的任务，如图形处理和科学计算。</p>
+<p>TOPS：TOPS是每秒执行的万亿次运算。这个术语更常用于衡量AI和机器学习硬件的性能，因为这些任务通常包括大量的整数和固定点运算，而不是传统的浮点运算。 TOPS特别适用于评估深度学习推理任务的性能。</p>
+<p>总的来说，TFLOPS更多地关注浮点运算性能，而TOPS则涵盖了更广泛的运算类型，更适用于AI和深度学习应用</p>
+<h2 id="英伟达GPU常见的各种核心"><a href="#英伟达GPU常见的各种核心" class="headerlink" title="英伟达GPU常见的各种核心"></a>英伟达GPU常见的各种核心</h2><ul>
+<li><p>CUDA Core<br>  英伟达GPU的参数中，最常看到的核心类型。Nvidia通常用最小的运算单元表示自己的运算能力，CUDA Core 指的是一个执行基础运算的处理元件。我们所说的CUDA Core数量，通常对应的是 FP32 计算单元的数量。</p>
+</li>
+<li><p>Tensor Core<br>  核心特别大，用于机器学习加速，它可以把整个矩阵都载入寄存器中批量运算，实现十几倍的效率提升，从Volta 架构发布以来，奠定了英伟达在AI训练的领军地位，每次升级都有新支持的数据类型。</p>
+</li>
+<li><p>RT Cores<br>  正常数据中心级的GPU核心是没有RT Core的，主要是消费级显卡才为光线追踪运算添加了RT Cores，考虑到芯片的空间有限，每个SM里面只有1个光追核心(为此还砍掉了大部分的FP64)。可以极大地提升了游戏渲染效率。</p>
+</li>
+</ul>
+<h2 id="GPU-GPU的经典互联方案NVLink等技术解析"><a href="#GPU-GPU的经典互联方案NVLink等技术解析" class="headerlink" title="GPU-GPU的经典互联方案NVLink等技术解析"></a>GPU-GPU的经典互联方案NVLink等技术解析</h2><p>Nvlink是英伟达私有的芯片互联技术，通常用于GPU之间或者GPU到CPU，Nv Switch是基于Nvlink技术的芯片或者类似交换机的设备，在主机内部NvSwitch是芯片，跨节点互联就是搭载Nv switch芯片的独立网络设备。历代Nvlink的版本和速率变化如下：</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Nmnyb8ngmo7ZmGx53WJcRsfTnRd.png" src-width="1080" src-height="663" align="center"/>
+
+<p>Nvidia GPU互联技术最新的是NVLink5.0，与前代4.0相比通道数不变，速率翻倍至1.8TB&#x2F;s</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/MMFZbkFhSoXuGgxOPTFc8Wtqnvc.png" src-width="1967" src-height="482" align="center"/>
+
+<p>2024年，Blackwell架构的B200正式发布，NVLink和NVSwitch芯片分别来到5.0和4.0的版本，单条链路速率翻倍来到单向50GB&#x2F;s，数量还是18条，GPU间的互联带宽翻倍至1.8TB&#x2F;s，8个GPU对应2个NVswitch芯片，每个NvSwitch芯片拥有72个NVLink5.0接口，每个GPU用9条NVLink和2个NVSwitch芯片互联，如下图所示</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/VKzabqv54oD5OzxWwADcd8V8n4f.png" src-width="1080" src-height="512" align="center"/>
+
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/C3HTbUeuEo5nUyxrs50cAXLJnkf.png" src-width="1080" src-height="396" align="center"/>
+
+<h2 id="GPU基础环境安装"><a href="#GPU基础环境安装" class="headerlink" title="GPU基础环境安装"></a>GPU基础环境安装</h2><h3 id="查看GPU信息"><a href="#查看GPU信息" class="headerlink" title="查看GPU信息"></a>查看GPU信息</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查看GPU型号</span></span><br><span class="line">nvidia-smi -q | grep -i <span class="string">&quot;Product Name&quot;</span></span><br><span class="line"><span class="comment">#查看GPU槽位</span></span><br><span class="line">lspci -vt | dmidecode -t slot | grep </span><br><span class="line"><span class="comment">#开启gpu持久模式</span></span><br><span class="line">nvidia-smi pm 1</span><br><span class="line"><span class="comment">#查看是否为一拖八</span></span><br><span class="line">nvidia-smi top -m</span><br></pre></td></tr></table></figure>
+
+<h3 id="nvidia驱动下载"><a href="#nvidia驱动下载" class="headerlink" title="nvidia驱动下载"></a><a target="_blank" rel="noopener" href="https://www.nvidia.cn/Download/Find.aspx?lang=cn">nvidia驱动下载</a></h3><h3 id="安装CUDA"><a href="#安装CUDA" class="headerlink" title="安装CUDA"></a><a target="_blank" rel="noopener" href="https://developer.nvidia.com/cuda-toolkit-archive">安装CUDA</a></h3><h3 id="Nvidia-smi（System-Management-Interface-SMI）监控管理工具"><a href="#Nvidia-smi（System-Management-Interface-SMI）监控管理工具" class="headerlink" title="Nvidia-smi（System Management Interface SMI）监控管理工具"></a>Nvidia-smi（System Management Interface SMI）监控管理工具</h3><p>这个命令会报告系统中每个GPU的基本监控数据和硬件参数，配置数据</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/He6JbTaIeoFmwFxwQ56cVLrTnsg.png" src-width="600" src-height="362" align="center"/>
+
+<p>参考链接：<a target="_blank" rel="noopener" href="https://developer.nvidia.com/system-management-interface">https://developer.nvidia.com/system-management-interface</a></p>
+<h2 id="GPU测试可以参考U盘环境介绍-pdf"><a href="#GPU测试可以参考U盘环境介绍-pdf" class="headerlink" title="GPU测试可以参考U盘环境介绍.pdf"></a>GPU测试可以参考<a href="GpLJbCG4toikNIxnziqc4fbYnsc">U盘环境介绍.pdf</a></h2><h3 id="Shoc-master"><a href="#Shoc-master" class="headerlink" title="Shoc-master"></a>Shoc-master</h3><p>The Scalable HeterOgeneous Computing SHOC单双精度浮点型算力测试，基于GEMM,FFT,Stencil等计算模式，综合CUDA与OpenCL，MPI方式进行GPU算力计算（兼容cuda12之前版本）</p>
+<h3 id="Cuda-samples-cuda测试用例"><a href="#Cuda-samples-cuda测试用例" class="headerlink" title="Cuda-samples cuda测试用例"></a>Cuda-samples cuda测试用例</h3><p><code>#测试带宽H2D</code></p>
+<p><code>tar -zxvf cuda-samples-11.8.tar.gz</code></p>
+<p><code>cd cuda-samples-11.8/Samples/1_Utilities/bandwidthTest/</code></p>
+<p><code>make</code></p>
+<p><code>单卡./bandwidthTest &gt;&gt; bandwidthTest.log</code></p>
+<p><code>全卡./bandwidthTest -device=all &gt;&gt; bandwidthTest_all.log</code></p>
+<p><code>#Bandwidth测试—P2P Bandwidth</code></p>
+<p><code>cd /cuda-samples-12.2/Samples/5_Domain_Specific/p2pBandwidthLatencyTest/</code></p>
+<p><code>make</code></p>
+<p><code>./ p2pBandwidthLatencyTest</code></p>
+<p><code>H800参考值：400GB/s,达到80%即可</code></p>
+<p><code>H100参考值：900GB/s,达到80%即可</code></p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://github.com/NVIDIA/cuda-samples/tree/master">https://github.com/NVIDIA/cuda-samples/tree/master</a></p>
+<h3 id="gpu-burn压测"><a href="#gpu-burn压测" class="headerlink" title="gpu_burn压测"></a>gpu_burn压测</h3><p>针对多GPU的压测程序，使用CUDA程序API，每个GPU分配一个进程，一个进程用于跟踪GPU的温度（可用情况下），另一个进程用于报告进度。每个进程分配90%的可用GPU内存，初始化2个随机的2048*2048矩阵，并持续对它们执行高效的CUBLAS矩阵乘法例程，并将结果存储在分配的内存中。浮点数和双精度数均支持。通过将新计算的结果与GPU上先前的计算结果进行比较来检查计算的正确性。这样，GPU始终处于100%繁忙状态，而CPU处于空闲状态。错误计算的数量将返回CPU，并与迄今为止执行的操作数量和GPU温度一起报告给用户。</p>
+<p><code>三天：./gpu_burn 259200</code></p>
+<p><code>压测一周：nohup ./gpu_burn 604800 &amp;</code></p>
+<p><code>抓取GPU压测温度功耗：nvidia-smi -l 10 --format=csv --filename=report.csv --query-gpu=timestamp,name,temperature.gpu,power.draw</code></p>
+<p><code>最后查看cat /var/log/messages | grep -iE &quot;error|fail|warn&quot;</code></p>
+<p><code>Dmesg | grep -iE &quot;error|fail|warn&quot;</code></p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://github.com/wilicc/gpu-burn">https://github.com/wilicc/gpu-burn</a></p>
+<h3 id="stream-vectorized-double-test"><a href="#stream-vectorized-double-test" class="headerlink" title="stream_vectorized_double_test"></a>stream_vectorized_double_test</h3><p>nvidia提供的基于CUDA优化的STREAM测试工具，测试单个GPU的显存带宽</p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://www.cs.virginia.edu/stream/">https://www.cs.virginia.edu/stream/</a></p>
+<h3 id="Peak-tops"><a href="#Peak-tops" class="headerlink" title="Peak tops"></a>Peak tops</h3><p>nvidia提供的算力测试工具，tensor实现FP8，INT8，FP16，BF16，TF32；FFMA实现FP32（只兼容hoper架构）</p>
+<h3 id="clublasMatmulBench"><a href="#clublasMatmulBench" class="headerlink" title="clublasMatmulBench"></a>clublasMatmulBench</h3><p>NVIDIA CUDA Basic Linear Algebra(cuBLAS)库提供，用于测试单个GPU的general matrix multiplication（GEMM）性能</p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://developer.nvidia.com/cublas">https://developer.nvidia.com/cublas</a></p>
+<h3 id="nvbandwidth"><a href="#nvbandwidth" class="headerlink" title="nvbandwidth"></a>nvbandwidth</h3><p>nvbandwidth是一个用于测量NVIDIA GPU带宽的工具，用于测量不同链接上各种memcpy模式下的带宽</p>
+<p>单向测试，测量从CPU到GPU的带宽</p>
+<p>双向测试，同时测量两个方向上的带宽</p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://github.com/NVIDIA/nvbandwidth">https://github.com/NVIDIA/nvbandwidth</a></p>
+<h3 id="NCCL测试"><a href="#NCCL测试" class="headerlink" title="NCCL测试"></a>NCCL测试</h3><p>nccl库测试说明<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/3lrLSYe7JhalTcXjpFQ0dA">https://mp.weixin.qq.com/s/3lrLSYe7JhalTcXjpFQ0dA</a></p>
+<h3 id="batchCUBLAS"><a href="#batchCUBLAS" class="headerlink" title="batchCUBLAS"></a>batchCUBLAS</h3><p>Batch CUBLAS（CUDA Basic Linear Algebra Subprograms）测试是用于评估 NVIDIA GPU 在执行线性代数运算时的性能的工具。CUBLAS 是 NVIDIA 提供的一个库，它实现了在 GPU 上运行的基本线性代数运算，比如矩阵乘法、向量点乘等。</p>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://github.com/NVIDIA/cuda-samples/blob/master/Samples/4_CUDA_Libraries/batchCUBLAS">https://github.com/NVIDIA/cuda-samples/blob/master/Samples/4_CUDA_Libraries/batchCUBLAS</a></p>
+<h3 id="Unixbench测试"><a href="#Unixbench测试" class="headerlink" title="Unixbench测试"></a>Unixbench测试</h3><p>Unixbench 是一个基准测试工具，它通过一系列测试来评估 Unix 系统的性能。Unixbench 测试套件包括对 CPU、内存、磁盘 I&#x2F;O、系统调用等的测试。maxCopies 是 Unixbench 中的一个参数，它用于控制测试中数据复制的最大次数。</p>
+<p>软件包链接：<a target="_blank" rel="noopener" href="https://soft.lnmp.com/test/unixbench/">https://soft.lnmp.com/test/unixbench/</a></p>
+<h3 id="Dcgmi-diag-r-4"><a href="#Dcgmi-diag-r-4" class="headerlink" title="Dcgmi diag -r 4"></a>Dcgmi diag -r 4</h3><p>DCGM Diagnostics提供了系统级的英伟达GPU卡检测工具，采用level1，level2，level3和level4的诊断级别，检测软件，pcie+nvlink，GPU memory，Memory Bandwidth，  Diagnostics，Targeted Stress，Targeted Power，Memory Stress，Input EDPp方面的检测</p>
+<p>参考链接：<a target="_blank" rel="noopener" href="http://docs.nvidia.com/datacenter/dcgm/latest/user-guide/dcgm-diagnostics.html">http://docs.nvidia.com/datacenter/dcgm/latest/user-guide/dcgm-diagnostics.html</a></p>
+<ol>
+<li>p2pBandwidthLatencyTest</li>
+</ol>
+<p>测试使用cuda在GPU与GPU直接数据传输的效率，验收新服务器的时候常用</p>
+<h2 id="DCGM实现GPU的性能分析"><a href="#DCGM实现GPU的性能分析" class="headerlink" title="DCGM实现GPU的性能分析"></a>DCGM实现GPU的性能分析</h2><p>dcgmi 是 Nvidia datacenter-gpu-manager 的命令行程序，可以用来采集 GPU 各类子资源的利用率数据，揭示的数据比 nvidia-smi 更详细，也更便于对接监控系统（比如 Prometheus）。主要可用它来看模型训练过程中的 NVLink 带宽使用情况。NVIDIA GPU上存在一些硬件计数器，这些计数器可以用来收集一些设备级别的性能指标，例如GPU利用率、内存使用情况等。借助NVIDIA提供的NVML（NVIDIA Management Library）库或DCGM（Data Center GPU Manager）工具能够查询这些硬件层提供的指标。NVIDIA Data Center GPU Manager (DCGM) 是一套用于管理和监控数据中心 NVIDIA GPU 的工具集。</p>
+<p>DCGM: nvidia data center gpu manager是一套用于在集群环境中管理和监控 NVIDIA 数据中心 GPU 的工具。它包括主动健康监控、全面诊断、系统警报和治理策略（包括电源和时钟管理）。 DCGM 诊断是一款运行状况检查工具，可以检查基本的 GPU 运行状况，包括是否存在 ECC 错误、PCIe 问题、带宽问题以及运行 CUDA 程序的常见问题。</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/OWaIbWzesoCrCjxtRaPc17Xonkg.png" src-width="984" src-height="835" align="center"/>
+
+<h2 id="Fieldiag压测工具"><a href="#Fieldiag压测工具" class="headerlink" title="Fieldiag压测工具"></a>Fieldiag压测工具</h2><p>当前NV官方以fieldiag压测结果作为RMA的标准，不同的GPU都有匹配的fieldiag工具（这些工具需要在哪里进行获取？），工具可以运行在DOS环境或者大多数Linux系统kernel2.6.16 or later,</p>
+<p>Glibc 2.32 or later, 只支持64-bit x86_64,TinyLinux version 12.08 or later is supported.</p>
+<img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/KT7TbZSgzoaX0bxlGTGcge0fnae.png" src-width="1026" src-height="796" align="center"/>
+
+<p>支持的NVIDIA Tesla硬件：</p>
+<ul>
+<li>Tesla C2050, C2070, C2075</li>
+<li>Tesla M2050, M2070, M2070Q, M2075</li>
+<li>Tesla S2050</li>
+<li>Tesla X2070, X2090</li>
+<li>Tesla M2090</li>
+<li>Tesla K10, K20, K20X, K40</li>
+</ul>
+<h2 id="NVQual"><a href="#NVQual" class="headerlink" title="NVQual"></a>NVQual</h2><h3 id="故障问题"><a href="#故障问题" class="headerlink" title="故障问题"></a>故障问题</h3><p>XID消息是来自NVIDIA驱动程序的错误报告，该报告打印到操作系统的内核日志或事件日志上；xid指示GPU硬件问题，NVIDIA软件问题或用户应用程序问题；常见的xid事件：</p>
+<ul>
+<li>XID 13: GR: SW Notify Error:常见原因：一般为用户应用程序故障。通常这是一个数组下标越界错误。也有可能是非法指令，非法寄存器等其他情况。极少数情况下 会出现硬件故障或者软件错误导致XID 13</li>
+<li>XID 31: Fifo: MMU Error:常见原因： 一般为应用程序级别故障。 当MMU上报故障时，当gpu芯片上的应用程序进行非法地址访问时，会触发此类故障并记录。</li>
+<li>XID 32: PBDMA Error:常见原因： 一般是硬件问题。当 DMA 控制器报告故障时，会记录此事件，该控制器通过 PCI-E 总线管理 NVIDIA 驱动程序和 GPU 之间的通信流。这些故障主要涉及PCI的质量问题，一般不是由用户应用程序操作引起的。解决方式： 联合硬件运维处理</li>
+<li>XID 43: RESET CHANNEL VERIF ERROR:常见原因：基本是用户应用程序故障。不影响GPU的健康状况解决方式: 联合开发同事处理</li>
+<li>XID 45: OS: Preemptive Channel Removal:常见原因： 通常这并代表发生故障。用户程序退出中止，control-C cpu reset sigkill 都会导致此类事件</li>
+<li>XID 48: DBE (Double Bit Error) ECC Error:常见原因：怀疑硬件故障。当gpu检测到不可修正的错误，会记录该事件。</li>
+<li>XID 63, 64: ECC Page Retirement or ROW REMAPPING:常见原因： ECC显存故障，常见于硬件故障。 当应用程序遭遇到 GPU 显存硬件错误时，NVIDIA 自纠错机制会将错误的内存区域retire 或者 remap，retirement 和remapped 信息需要记录到 infoROM 中才能永久生效。A 系列显卡开始支持row remappingA系列之前的显卡，例如T4 V100 P100 支持dynamic page retirement解决方式：联合硬件同事排查</li>
+<li>XID 74: Nvlink ERROR:常见原因：多半为硬件故障。多卡GPU之间使用nvlink进行通讯时出现问题，链路故障或者g卡故障都会导致。解决方式：可自行通过gpu reset 或者重启节点 进行恢复。如果此时还无法恢复，需要进行维修处理。</li>
+<li>XID 79: GPU has fallen off the bus:常见原因： 多半是硬件问题。具体现象为当gpu驱动尝试通过PCI-e总线访问GPU，访问失败。此事件通常由PCIe链路上的硬件故障引起，导致GPU由于链路中断而无法访问。解决方式：硬件维修</li>
+<li>XID 93: Non-fatal violation of provisioned inforom wear limit:常见原因: 当GPU驱动程序因违反使用nvflash-elsesessionstart导致更新infoROM失败。大多数情况下，这并不是软件驱动故障。</li>
+<li>XID 94, 95: CONTAINED&#x2F;UNCONTAINED ECC ERRORs:常见原因：当应用程序遭遇到 GPU 不可纠正的显存 ECC 错误时，NVIDIA 错误抑制机制会尝试将错误抑制在踩到硬件故障的应用程序，而不会让错误导致 GPU 上的所有应用程序受到影响。当抑制机制成功抑制错误时，会产生Xid 94事件，仅影响遭遇了不可纠正 ECC 错误的应用程序。 Xid95 代表抑制失败，此时表明运行在该 GPU 上的所有应用程序都已受到影响。解决方式: 联合硬件同事处理</li>
+<li>XID 110 SECURITY FAULT ERROR:常见原因：硬件故障。解决方式： 恢复最近所有的系统硬件修改，并冷启动系统。需联系硬件处理。</li>
+<li>XID 119, 120: GSP RPC Timeout &#x2F; GSP Error:常见原因： 当在 GPU 的 GSP 核心上运行的代码中发生错误&#x2F;或在等待 GPU 的 GSP 核心响应 RPC 消息时发生超时时。解决方式: 可以尝试重启节点或者重置GPU。如果还不行联系硬件处理</li>
+</ul>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://docs.nvidia.com/deploy/xid-errors/index.html">https://docs.nvidia.com/deploy/xid-errors/index.html</a></p>
+<h2 id="国内外GPU技术发展趋势"><a href="#国内外GPU技术发展趋势" class="headerlink" title="国内外GPU技术发展趋势"></a>国内外GPU技术发展趋势</h2><h2 id="📚-参考资料"><a href="#📚-参考资料" class="headerlink" title="📚 参考资料"></a>📚 参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.techpowerup.com/gpu-specs/">GPU相关规格参数</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.mydrivers.com/zhuanti/tianti/gpu/index_nvidia.html">消费卡相关规格参数</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41897488/article/details/141956083">GPU全面介绍</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.nvidia.com/deploy/hw-field-diag/index.html">NVIDIA Field Diagnostic Software</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/QaZFME7afvPtefoyU1WXlg">一文搞懂服务器内部CPU&amp;GPU互联技术和带宽计算方式</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.nvidia.com/datacenter/dcgm/latest/index.html">英伟达dcgmi文档</a></li>
+</ul>
+</article><div class="post-copyright"><div class="copyright-cc-box"><i class="anzhiyufont anzhiyu-icon-copyright"></i></div><div class="post-copyright__author_box"><a class="post-copyright__author_img" href="/" title="头像"><img class="post-copyright__author_img_back" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://bu.dusays.com/2023/04/27/64496e511b09c.jpg" title="头像" alt="头像"><img class="post-copyright__author_img_front" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://bu.dusays.com/2023/04/27/64496e511b09c.jpg" title="头像" alt="头像"></a><div class="post-copyright__author_name">wangjun</div><div class="post-copyright__author_desc">专注分享计算机技术与行业动态，欢迎关注！</div></div><div class="post-copyright__post__info"><a class="post-copyright__original" title="该文章为原创文章，注意版权协议" href="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">原创</a><a class="post-copyright-title"><span onclick="rm.copyPageUrl('https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/')">服务器GPU知识手册</span></a></div><div class="post-tools" id="post-tools"><div class="post-tools-left"><div class="rewardLeftButton"><div class="post-reward" onclick="anzhiyu.addRewardMask()"><div class="reward-button button--animated" title="赞赏作者"><i class="anzhiyufont anzhiyu-icon-hand-heart-fill"></i>打赏作者</div><div class="reward-main"><div class="reward-all"><span class="reward-title">感谢你赐予我前进的力量</span><ul class="reward-group"><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg" alt="wechat"/></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul><a class="reward-main-btn" href="/about/#about-reward" target="_blank"><div class="reward-text">赞赏者名单</div><div class="reward-dec">因为你们的支持让我意识到写文章的价值🙏</div></a></div></div></div><div id="quit-box" onclick="anzhiyu.removeRewardMask()" style="display: none"></div></div><div class="shareRight"><div class="share-link mobile"><div class="share-qrcode"><div class="share-button" title="使用手机访问这篇文章"><i class="anzhiyufont anzhiyu-icon-qrcode"></i></div><div class="share-main"><div class="share-main-all"><div id="qrcode" title="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/"></div><div class="reward-dec">使用手机访问这篇文章</div></div></div></div></div><div class="share-link weibo"><a class="share-button" target="_blank" href="https://service.weibo.com/share/share.php?title=undefined&amp;url=https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/&amp;pic=undefined" rel="external nofollow noreferrer noopener"><i class="anzhiyufont anzhiyu-icon-weibo"></i></a></div><script>function copyCurrentPageUrl() {
+  var currentPageUrl = window.location.href;
+  var input = document.createElement("input");
+  input.setAttribute("value", currentPageUrl);
+  document.body.appendChild(input);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+  document.body.removeChild(input);
+}</script><div class="share-link copyurl"><div class="share-button" id="post-share-url" title="复制链接" onclick="copyCurrentPageUrl()"><i class="anzhiyufont anzhiyu-icon-link"></i></div></div></div></div></div><div class="post-copyright__notice"><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://crayon.github.io" target="_blank">Crayon Personal Blog site</a>！</span></div></div><div class="post-tools-right"><div class="tag_share"><div class="post-meta__box"><div class="post-meta__box__tag-list"><a class="post-meta__box__tags" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>服务器GPU<span class="tagsPageCount">1</span></a><a class="post-meta__box__tags" href="/tags/GPU%E6%8A%80%E6%9C%AF/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>GPU技术<span class="tagsPageCount">1</span></a><a class="post-meta__box__tags" href="/tags/GPU%E6%B5%8B%E8%AF%95/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>GPU测试<span class="tagsPageCount">1</span></a><a class="post-meta__box__tags" href="/tags/NVLink/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>NVLink<span class="tagsPageCount">1</span></a><a class="post-meta__box__tags" href="/tags/GPU%E5%8F%82%E6%95%B0/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>GPU参数<span class="tagsPageCount">1</span></a><a class="post-meta__box__tags" href="/tags/GPU%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD/"><span class="tags-punctuation"> <i class="anzhiyufont anzhiyu-icon-tag"></i></span>GPU故障诊断<span class="tagsPageCount">1</span></a></div></div></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_memory.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.cbd.int/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"/><script src="https://cdn.cbd.int/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer="defer"></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/"><img class="prev-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">服务器CPU知识手册</div></div></a></div><div class="next-post pull-right"><a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/"><img class="next-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_memory.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">服务器内存知识手册</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="card-content"><div class="author-info-avatar"><img class="avatar-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://bu.dusays.com/2023/04/27/64496e511b09c.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__description">一个分享信息和计算机知识的个人小站点</div><div class="author-info__bottom-group"><a class="author-info__bottom-group-left" href="/"><h1 class="author-info__name">wangjun</h1><div class="author-info__desc">专注分享计算机技术与行业动态，欢迎关注！</div></a><div class="card-info-social-icons is-center"><a class="social-icon faa-parent animated-hover" href="https://github.com/CrayonW" target="_blank" title="Github"><i class="anzhiyufont anzhiyu-icon-github"></i></a><a class="social-icon faa-parent animated-hover" href="https://space.bilibili.com/10057614?spm_id_from=333.33.0.0" target="_blank" title="BiliBili"><i class="anzhiyufont anzhiyu-icon-bilibili"></i></a></div></div></div></div><div class="card-widget anzhiyu-right-widget" id="card-wechat" onclick="null"><div id="flip-wrapper"><div id="flip-content"><div class="face" style="background: url(https://bu.dusays.com/2023/01/13/63c02edf44033.png) center center / 100% no-repeat"></div><div class="back face" style="background: url(https://bu.dusays.com/2023/05/13/645fa415e8694.png) center center / 100% no-repeat"></div></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="anzhiyufont anzhiyu-icon-bars"></i><span>文章目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C"><span class="toc-text">服务器GPU知识手册</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU%E7%AE%80%E4%BB%8B"><span class="toc-text">GPU简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU%E7%9A%84PLX%E4%B8%89%E7%A7%8D%E6%8B%93%E6%89%91"><span class="toc-text">GPU的PLX三种拓扑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU%E7%9A%84%E6%A0%B8%E5%BF%83%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-text">GPU的核心参数说明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A"><span class="toc-text">相关名词解释</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%97%E5%8A%9B%E7%90%86%E8%AE%BA%E5%80%BC%E8%AE%A1%E7%AE%97"><span class="toc-text">算力理论值计算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%8B%B1%E4%BC%9F%E8%BE%BEGPU%E5%B8%B8%E8%A7%81%E7%9A%84%E5%90%84%E7%A7%8D%E6%A0%B8%E5%BF%83"><span class="toc-text">英伟达GPU常见的各种核心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU-GPU%E7%9A%84%E7%BB%8F%E5%85%B8%E4%BA%92%E8%81%94%E6%96%B9%E6%A1%88NVLink%E7%AD%89%E6%8A%80%E6%9C%AF%E8%A7%A3%E6%9E%90"><span class="toc-text">GPU-GPU的经典互联方案NVLink等技术解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU%E5%9F%BA%E7%A1%80%E7%8E%AF%E5%A2%83%E5%AE%89%E8%A3%85"><span class="toc-text">GPU基础环境安装</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8BGPU%E4%BF%A1%E6%81%AF"><span class="toc-text">查看GPU信息</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#nvidia%E9%A9%B1%E5%8A%A8%E4%B8%8B%E8%BD%BD"><span class="toc-text">nvidia驱动下载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85CUDA"><span class="toc-text">安装CUDA</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Nvidia-smi%EF%BC%88System-Management-Interface-SMI%EF%BC%89%E7%9B%91%E6%8E%A7%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7"><span class="toc-text">Nvidia-smi（System Management Interface SMI）监控管理工具</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GPU%E6%B5%8B%E8%AF%95%E5%8F%AF%E4%BB%A5%E5%8F%82%E8%80%83U%E7%9B%98%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D-pdf"><span class="toc-text">GPU测试可以参考U盘环境介绍.pdf</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Shoc-master"><span class="toc-text">Shoc-master</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Cuda-samples-cuda%E6%B5%8B%E8%AF%95%E7%94%A8%E4%BE%8B"><span class="toc-text">Cuda-samples cuda测试用例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#gpu-burn%E5%8E%8B%E6%B5%8B"><span class="toc-text">gpu_burn压测</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#stream-vectorized-double-test"><span class="toc-text">stream_vectorized_double_test</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Peak-tops"><span class="toc-text">Peak tops</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#clublasMatmulBench"><span class="toc-text">clublasMatmulBench</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#nvbandwidth"><span class="toc-text">nvbandwidth</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NCCL%E6%B5%8B%E8%AF%95"><span class="toc-text">NCCL测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#batchCUBLAS"><span class="toc-text">batchCUBLAS</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Unixbench%E6%B5%8B%E8%AF%95"><span class="toc-text">Unixbench测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Dcgmi-diag-r-4"><span class="toc-text">Dcgmi diag -r 4</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DCGM%E5%AE%9E%E7%8E%B0GPU%E7%9A%84%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90"><span class="toc-text">DCGM实现GPU的性能分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Fieldiag%E5%8E%8B%E6%B5%8B%E5%B7%A5%E5%85%B7"><span class="toc-text">Fieldiag压测工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NVQual"><span class="toc-text">NVQual</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%85%E9%9A%9C%E9%97%AE%E9%A2%98"><span class="toc-text">故障问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%BD%E5%86%85%E5%A4%96GPU%E6%8A%80%E6%9C%AF%E5%8F%91%E5%B1%95%E8%B6%8B%E5%8A%BF"><span class="toc-text">国内外GPU技术发展趋势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%F0%9F%93%9A-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-text">📚 参考资料</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="anzhiyufont anzhiyu-icon-history"></i><span>最近发布</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器内存知识手册"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_memory.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器内存知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器内存知识手册">服务器内存知识手册</a><time datetime="2025-05-30T03:31:00.000Z" title="发表于 2025-05-30 11:31:00">2025-05-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器GPU知识手册"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_gpu.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器GPU知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器GPU知识手册">服务器GPU知识手册</a><time datetime="2025-05-30T03:30:54.000Z" title="发表于 2025-05-30 11:30:54">2025-05-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器CPU知识手册"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器CPU知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器CPU知识手册">服务器CPU知识手册</a><time datetime="2025-05-30T03:24:28.000Z" title="发表于 2025-05-30 11:24:28">2025-05-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" title="lspci命令使用和解析"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_lspci_command.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="lspci命令使用和解析"/></a><div class="content"><a class="title" href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" title="lspci命令使用和解析">lspci命令使用和解析</a><time datetime="2025-05-26T06:18:00.000Z" title="发表于 2025-05-26 14:18:00">2025-05-26</time></div></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"></div><div id="footer-bar"><div class="footer-bar-links"><div class="footer-bar-left"><div id="footer-bar-tips"><div class="copyright">&copy;2020 - 2025 By <a class="footer-bar-link" href="/" title="wangjun" target="_blank">wangjun</a></div></div><div id="footer-type-tips"></div></div><div class="footer-bar-right"><a class="footer-bar-link" target="_blank" rel="noopener" href="https://github.com/anzhiyu-c/hexo-theme-anzhiyu" title="主题">主题</a></div></div></div></footer></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="sidebar-site-data site-data is-center"><a href="/archives/" title="archive"><div class="headline">文章</div><div class="length-num">4</div></a><a href="/tags/" title="tag"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/" title="category"><div class="headline">分类</div><div class="length-num">2</div></a></div><span class="sidebar-menu-item-title">功能</span><div class="sidebar-menu-item"><a class="darkmode_switchbutton menu-child" href="javascript:void(0);" title="显示模式"><i class="anzhiyufont anzhiyu-icon-circle-half-stroke"></i><span>显示模式</span></a></div><div class="back-menu-list-groups"><div class="back-menu-list-group"><div class="back-menu-list-title">网页</div><div class="back-menu-list"><a class="back-menu-item" target="_blank" rel="noopener" href="https://blog.anheyu.com/" title="博客"><img class="back-menu-item-icon" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="/img/favicon.ico" alt="博客"/><span class="back-menu-item-text">博客</span></a></div></div><div class="back-menu-list-group"><div class="back-menu-list-title">项目</div><div class="back-menu-list"><a class="back-menu-item" target="_blank" rel="noopener" href="https://image.anheyu.com/" title="安知鱼图床"><img class="back-menu-item-icon" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" onerror="this.onerror=null,this.src=&quot;/img/404.jpg&quot;" data-lazy-src="https://image.anheyu.com/favicon.ico" alt="安知鱼图床"/><span class="back-menu-item-text">安知鱼图床</span></a></div></div></div><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/archives/"><span> 文章</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/link/"><span> 友链</span></a></div><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/about/"><span> 关于</span></a></div></div><span class="sidebar-menu-item-title">标签</span><div class="card-tags"><div class="item-headline"></div><div class="card-tag-cloud"><a href="/tags/DDR/" style="font-size: 0.88rem;">DDR<sup>1</sup></a><a href="/tags/ECC/" style="font-size: 0.88rem;">ECC<sup>1</sup></a><a href="/tags/GPU%E5%8F%82%E6%95%B0/" style="font-size: 0.88rem;">GPU参数<sup>1</sup></a><a href="/tags/GPU%E6%8A%80%E6%9C%AF/" style="font-size: 0.88rem;">GPU技术<sup>1</sup></a><a href="/tags/GPU%E6%95%85%E9%9A%9C%E8%AF%8A%E6%96%AD/" style="font-size: 0.88rem;">GPU故障诊断<sup>1</sup></a><a href="/tags/GPU%E6%B5%8B%E8%AF%95/" style="font-size: 0.88rem;">GPU测试<sup>1</sup></a><a href="/tags/HBM/" style="font-size: 0.88rem;">HBM<sup>1</sup></a><a href="/tags/NVLink/" style="font-size: 0.88rem;">NVLink<sup>1</sup></a><a href="/tags/cpu%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0/" style="font-size: 0.88rem;">cpu性能参数<sup>1</sup></a><a href="/tags/cpu%E6%9E%B6%E6%9E%84/" style="font-size: 0.88rem;">cpu架构<sup>1</sup></a><a href="/tags/cpu%E6%B5%8B%E8%AF%95%E8%B0%83%E4%BC%98/" style="font-size: 0.88rem;">cpu测试调优<sup>1</sup></a><a href="/tags/linux/" style="font-size: 0.88rem;">linux<sup>1</sup></a><a href="/tags/lspci/" style="font-size: 0.88rem;">lspci<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E6%8A%80%E6%9C%AF/" style="font-size: 0.88rem;">内存技术<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E6%B5%8B%E8%AF%95/" style="font-size: 0.88rem;">内存测试<sup>1</sup></a><a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" style="font-size: 0.88rem;">内存管理<sup>1</sup></a><a href="/tags/%E5%91%BD%E4%BB%A4/" style="font-size: 0.88rem;">命令<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU/" style="font-size: 0.88rem;">服务器CPU<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU/" style="font-size: 0.88rem;">服务器GPU<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98/" style="font-size: 0.88rem;">服务器内存<sup>1</sup></a><a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" style="font-size: 0.88rem;">服务器硬件<sup>1</sup></a></div></div><hr/></div></div><div id="rightside"><div id="rightside-config-hide"><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="anzhiyufont anzhiyu-icon-arrows-left-right"></i></button></div><div id="rightside-config-show"><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="anzhiyufont anzhiyu-icon-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="anzhiyufont anzhiyu-icon-arrow-up"></i></button></div></div><div id="rightMenu"><div class="rightMenu-group rightMenu-small"><div class="rightMenu-item" id="menu-backward"><i class="anzhiyufont anzhiyu-icon-arrow-left"></i></div><div class="rightMenu-item" id="menu-forward"><i class="anzhiyufont anzhiyu-icon-arrow-right"></i></div><div class="rightMenu-item" id="menu-refresh"><i class="anzhiyufont anzhiyu-icon-arrow-rotate-right" style="font-size: 1rem;"></i></div><div class="rightMenu-item" id="menu-top"><i class="anzhiyufont anzhiyu-icon-arrow-up"></i></div></div><div class="rightMenu-group rightMenu-line rightMenuPlugin"><div class="rightMenu-item" id="menu-copytext"><i class="anzhiyufont anzhiyu-icon-copy"></i><span>复制选中文本</span></div><div class="rightMenu-item" id="menu-pastetext"><i class="anzhiyufont anzhiyu-icon-paste"></i><span>粘贴文本</span></div><a class="rightMenu-item" id="menu-commenttext"><i class="anzhiyufont anzhiyu-icon-comment-medical"></i><span>引用到评论</span></a><div class="rightMenu-item" id="menu-newwindow"><i class="anzhiyufont anzhiyu-icon-window-restore"></i><span>新窗口打开</span></div><div class="rightMenu-item" id="menu-copylink"><i class="anzhiyufont anzhiyu-icon-link"></i><span>复制链接地址</span></div><div class="rightMenu-item" id="menu-copyimg"><i class="anzhiyufont anzhiyu-icon-images"></i><span>复制此图片</span></div><div class="rightMenu-item" id="menu-downloadimg"><i class="anzhiyufont anzhiyu-icon-download"></i><span>下载此图片</span></div><div class="rightMenu-item" id="menu-newwindowimg"><i class="anzhiyufont anzhiyu-icon-window-restore"></i><span>新窗口打开图片</span></div><div class="rightMenu-item" id="menu-search"><i class="anzhiyufont anzhiyu-icon-magnifying-glass"></i><span>站内搜索</span></div><div class="rightMenu-item" id="menu-searchBaidu"><i class="anzhiyufont anzhiyu-icon-magnifying-glass"></i><span>百度搜索</span></div><div class="rightMenu-item" id="menu-music-toggle"><i class="anzhiyufont anzhiyu-icon-play"></i><span>播放音乐</span></div><div class="rightMenu-item" id="menu-music-back"><i class="anzhiyufont anzhiyu-icon-backward"></i><span>切换到上一首</span></div><div class="rightMenu-item" id="menu-music-forward"><i class="anzhiyufont anzhiyu-icon-forward"></i><span>切换到下一首</span></div><div class="rightMenu-item" id="menu-music-playlist" onclick="window.open(&quot;https://y.qq.com/n/ryqq/playlist/8802438608&quot;, &quot;_blank&quot;);" style="display: none;"><i class="anzhiyufont anzhiyu-icon-radio"></i><span>查看所有歌曲</span></div><div class="rightMenu-item" id="menu-music-copyMusicName"><i class="anzhiyufont anzhiyu-icon-copy"></i><span>复制歌名</span></div></div><div class="rightMenu-group rightMenu-line rightMenuOther"><a class="rightMenu-item menu-link" id="menu-randomPost"><i class="anzhiyufont anzhiyu-icon-shuffle"></i><span>随便逛逛</span></a><a class="rightMenu-item menu-link" href="/categories/"><i class="anzhiyufont anzhiyu-icon-cube"></i><span>博客分类</span></a><a class="rightMenu-item menu-link" href="/tags/"><i class="anzhiyufont anzhiyu-icon-tags"></i><span>文章标签</span></a></div><div class="rightMenu-group rightMenu-line rightMenuOther"><a class="rightMenu-item" id="menu-copy" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-copy"></i><span>复制地址</span></a><a class="rightMenu-item" id="menu-commentBarrage" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-message"></i><span class="menu-commentBarrage-text">关闭热评</span></a><a class="rightMenu-item" id="menu-darkmode" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-circle-half-stroke"></i><span class="menu-darkmode-text">深色模式</span></a><a class="rightMenu-item" id="menu-translate" href="javascript:void(0);"><i class="anzhiyufont anzhiyu-icon-language"></i><span>轉為繁體</span></a></div></div><div id="rightmenu-mask"></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.cbd.int/@fancyapps/ui@5.0.28/dist/fancybox/fancybox.umd.js"></script><script src="https://cdn.cbd.int/instant.page@5.2.0/instantpage.js" type="module"></script><script src="https://cdn.cbd.int/vanilla-lazyload@17.8.5/dist/lazyload.iife.min.js"></script><script src="https://cdn.cbd.int/node-snackbar@0.1.16/dist/snackbar.min.js"></script><canvas id="universe"></canvas><script async src="https://npm.elemecdn.com/anzhiyu-theme-static@1.0.0/dark/dark.js"></script><script>// 消除控制台打印
+var HoldLog = console.log;
+console.log = function () {};
+let now1 = new Date();
+queueMicrotask(() => {
+  const Log = function () {
+    HoldLog.apply(console, arguments);
+  }; //在恢复前输出日志
+  const grt = new Date("04/01/2021 00:00:00"); //此处修改你的建站时间或者网站上线时间
+  now1.setTime(now1.getTime() + 250);
+  const days = (now1 - grt) / 1000 / 60 / 60 / 24;
+  const dnum = Math.floor(days);
+  const ascll = [
+    `欢迎使用安知鱼!`,
+    `生活明朗, 万物可爱`,
+    `
+        
+       █████╗ ███╗   ██╗███████╗██╗  ██╗██╗██╗   ██╗██╗   ██╗
+      ██╔══██╗████╗  ██║╚══███╔╝██║  ██║██║╚██╗ ██╔╝██║   ██║
+      ███████║██╔██╗ ██║  ███╔╝ ███████║██║ ╚████╔╝ ██║   ██║
+      ██╔══██║██║╚██╗██║ ███╔╝  ██╔══██║██║  ╚██╔╝  ██║   ██║
+      ██║  ██║██║ ╚████║███████╗██║  ██║██║   ██║   ╚██████╔╝
+      ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝
+        
+        `,
+    "已上线",
+    dnum,
+    "天",
+    "©2020 By 安知鱼 V1.6.14",
+  ];
+  const ascll2 = [`NCC2-036`, `调用前置摄像头拍照成功，识别为【小笨蛋】.`, `Photo captured: `, `🤪`];
+
+  setTimeout(
+    Log.bind(
+      console,
+      `\n%c${ascll[0]} %c ${ascll[1]} %c ${ascll[2]} %c${ascll[3]}%c ${ascll[4]}%c ${ascll[5]}\n\n%c ${ascll[6]}\n`,
+      "color:#425AEF",
+      "",
+      "color:#425AEF",
+      "color:#425AEF",
+      "",
+      "color:#425AEF",
+      ""
+    )
+  );
+  setTimeout(
+    Log.bind(
+      console,
+      `%c ${ascll2[0]} %c ${ascll2[1]} %c \n${ascll2[2]} %c\n${ascll2[3]}\n`,
+      "color:white; background-color:#4fd953",
+      "",
+      "",
+      'background:url("https://npm.elemecdn.com/anzhiyu-blog@1.1.6/img/post/common/tinggge.gif") no-repeat;font-size:450%'
+    )
+  );
+
+  setTimeout(Log.bind(console, "%c WELCOME %c 你好，小笨蛋.", "color:white; background-color:#4f90d9", ""));
+
+  setTimeout(
+    console.warn.bind(
+      console,
+      "%c ⚡ Powered by 安知鱼 %c 你正在访问 wangjun 的博客.",
+      "color:white; background-color:#f0ad4e",
+      ""
+    )
+  );
+
+  setTimeout(Log.bind(console, "%c W23-12 %c 你已打开控制台.", "color:white; background-color:#4f90d9", ""));
+
+  setTimeout(
+    console.warn.bind(console, "%c S013-782 %c 你现在正处于监控中.", "color:white; background-color:#d9534f", "")
+  );
+});</script><script async src="/anzhiyu/random.js"></script><div class="js-pjax"><input type="hidden" name="page-type" id="page-type" value="post"></div><script>var visitorMail = "";
+</script><script async data-pjax src="https://cdn.cbd.int/anzhiyu-theme-static@1.0.0/waterfall/waterfall.js"></script><script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/qrcodejs/1.0.0/qrcode.min.js"></script><link rel="stylesheet" href="https://cdn.cbd.int/anzhiyu-theme-static@1.1.9/icon/ali_iconfont_css.css"><link rel="stylesheet" href="https://cdn.cbd.int/anzhiyu-theme-static@1.0.0/aplayer/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.cbd.int/anzhiyu-blog-static@1.0.1/js/APlayer.min.js"></script><script src="https://cdn.cbd.int/hexo-anzhiyu-music@1.0.1/assets/js/Meting2.min.js"></script><script src="https://cdn.cbd.int/pjax@0.2.8/pjax.min.js"></script><script>let pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+var pjax = new Pjax({
+  elements: 'a:not([target="_blank"])',
+  selectors: pjaxSelectors,
+  cacheBust: false,
+  analytics: false,
+  scrollRestoration: false
+})
+
+document.addEventListener('pjax:send', function () {
+  // removeEventListener scroll 
+  anzhiyu.removeGlobalFnEvent('pjax')
+  anzhiyu.removeGlobalFnEvent('themeChange')
+
+  document.getElementById('rightside').classList.remove('rightside-show')
+  
+  if (window.aplayers) {
+    for (let i = 0; i < window.aplayers.length; i++) {
+      if (!window.aplayers[i].options.fixed) {
+        window.aplayers[i].destroy()
+      }
+    }
+  }
+
+  typeof typed === 'object' && typed.destroy()
+
+  //reset readmode
+  const $bodyClassList = document.body.classList
+  $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+})
+
+document.addEventListener('pjax:complete', function () {
+  window.refreshFn()
+
+  document.querySelectorAll('script[data-pjax]').forEach(item => {
+    const newScript = document.createElement('script')
+    const content = item.text || item.textContent || item.innerHTML || ""
+    Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+    newScript.appendChild(document.createTextNode(content))
+    item.parentNode.replaceChild(newScript, item)
+  })
+
+  GLOBAL_CONFIG.islazyload && window.lazyLoadInstance.update()
+
+  typeof panguInit === 'function' && panguInit()
+
+  // google analytics
+  typeof gtag === 'function' && gtag('config', '', {'page_path': window.location.pathname});
+
+  // baidu analytics
+  typeof _hmt === 'object' && _hmt.push(['_trackPageview',window.location.pathname]);
+
+  typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+
+  // prismjs
+  typeof Prism === 'object' && Prism.highlightAll()
+})
+
+document.addEventListener('pjax:error', e => {
+  if (e.request.status === 404) {
+    pjax.loadUrl('/404.html')
+  }
+})</script><script charset="UTF-8" src="https://cdn.cbd.int/anzhiyu-theme-static@1.1.5/accesskey/accesskey.js"></script></div><div id="popup-window"><div class="popup-window-title">通知</div><div class="popup-window-divider"></div><div class="popup-window-content"><div class="popup-tip">你好呀</div><div class="popup-link"><i class="anzhiyufont anzhiyu-icon-arrow-circle-right"></i></div></div></div></body></html>
