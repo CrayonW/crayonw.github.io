@@ -1,0 +1,415 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>服务器CPU知识手册 | Crayon Personal Blog site</title><meta name="author" content="wangjun"><meta name="copyright" content="wangjun"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元&#x2F;ALU&#x2F;寄存器）、关键性能参数（主频&#x2F;核心数&#x2F;缓存&#x2F;架构&#x2F;NUMA等）、多核与互联技术（UPI&#x2F;xGMI）、型号解析（Intel Xeon&#x2F;AMD EPYC）、性能测试方法（speccpu&#x2F;UnixBench&#x2F;SuperPI）及调优策略（BIOS设置&#x2F;OS配置&#x2F;绑核优化），并补充国产CPU（海光&#x2F;飞腾&#x2F;龙芯等）发展与认证信息，是服务器CP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="服务器CPU知识手册">
+<meta property="og:url" content="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/index.html">
+<meta property="og:site_name" content="Crayon Personal Blog site">
+<meta property="og:description" content="本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元&#x2F;ALU&#x2F;寄存器）、关键性能参数（主频&#x2F;核心数&#x2F;缓存&#x2F;架构&#x2F;NUMA等）、多核与互联技术（UPI&#x2F;xGMI）、型号解析（Intel Xeon&#x2F;AMD EPYC）、性能测试方法（speccpu&#x2F;UnixBench&#x2F;SuperPI）及调优策略（BIOS设置&#x2F;OS配置&#x2F;绑核优化），并补充国产CPU（海光&#x2F;飞腾&#x2F;龙芯等）发展与认证信息，是服务器CP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png">
+<meta property="article:published_time" content="2025-05-30T03:24:28.000Z">
+<meta property="article:modified_time" content="2025-05-30T03:24:28.000Z">
+<meta property="article:author" content="wangjun">
+<meta property="article:tag" content="服务器CPU">
+<meta property="article:tag" content="cpu架构">
+<meta property="article:tag" content="cpu性能参数">
+<meta property="article:tag" content="服务器硬件">
+<meta property="article:tag" content="cpu测试调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "服务器CPU知识手册",
+  "url": "https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/",
+  "image": "https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png",
+  "datePublished": "2025-05-30T03:24:28.000Z",
+  "dateModified": "2025-05-30T03:24:28.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "wangjun",
+      "url": "https://github.com/CrayonW"
+    }
+  ]
+}</script><link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico"><link rel="canonical" href="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-77MYZYRSES"></script><script>window.dataLayer = window.dataLayer || []
+function gtag(){dataLayer.push(arguments)}
+gtag('js', new Date())
+gtag('config', 'G-77MYZYRSES')
+btf.addGlobalFn('pjaxComplete', () => {
+  gtag('config', 'G-77MYZYRSES', {'page_path': window.location.pathname})
+}, 'google_analytics')
+</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":330,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":150,"languages":{"author":"作者: wangjun","link":"链接: ","source":"来源: Crayon Personal Blog site","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '服务器CPU知识手册',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Crayon Personal Blog site" type="application/atom+xml">
+</head><body><div id="web_bg" style="background-image: url(https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/pexels-markusspiske-177598.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="https://avatars.githubusercontent.com/u/17792594?v=4&amp;size=64" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/links/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="not-top-img" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="https://avatars.githubusercontent.com/u/17792594?v=4&amp;size=64" alt="Logo"><span class="site-name">Crayon Personal Blog site</span></a><a class="nav-page-title" href="/"><span class="site-name">服务器CPU知识手册</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/links/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav></header><main class="layout" id="content-inner"><div id="post"><div id="post-info"><h1 class="post-title">服务器CPU知识手册</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-05-30T03:24:28.000Z" title="发表于 2025-05-30 11:24:28">2025-05-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-05-30T03:24:28.000Z" title="更新于 2025-05-30 11:24:28">2025-05-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/">服务器硬件</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>13分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/#post-comment"><span class="gitalk-comment-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div><article class="container post-content" id="article-container"><h1 id="服务器CPU知识手册"><a href="#服务器CPU知识手册" class="headerlink" title="服务器CPU知识手册"></a>服务器CPU知识手册</h1><h2 id="📌-基本概念与功能"><a href="#📌-基本概念与功能" class="headerlink" title="📌 基本概念与功能"></a>📌 基本概念与功能</h2><h3 id="定义与作用"><a href="#定义与作用" class="headerlink" title="定义与作用"></a>定义与作用</h3><p>服务器CPU负责处理和执行系统指令，与普通CPU相比，服务器CPU需满足：高并发处理能力，高稳定性，长时间运行可靠性，更多核心与线程，更强扩展性；CPU包括运算逻辑部件，寄存器部件和控制器等</p>
+<p>目前CPU内部已经整合了内存控制器DMI，pci链接通信QPI（Intel）</p>
+<h3 id="核心组成"><a href="#核心组成" class="headerlink" title="核心组成"></a>核心组成</h3><ul>
+<li>控制单元：负责指令提取与解码</li>
+<li>算术逻辑单元(ALU)：执行各种运算操作</li>
+<li>寄存器：临时存储数据的高速存储单元</li>
+<li>各类寄存器类型：<ul>
+<li>累加寄存器</li>
+<li>标志寄存器</li>
+<li>程序计数器</li>
+<li>基址寄存器</li>
+<li>变址寄存器</li>
+<li>通用寄存器</li>
+<li>指令寄存器</li>
+<li>栈寄存器</li>
+</ul>
+</li>
+</ul>
+<h3 id="指令执行流程"><a href="#指令执行流程" class="headerlink" title="指令执行流程"></a>指令执行流程</h3><ol>
+<li>取指：从内存中提取指令</li>
+<li>解码：控制单元解析指令</li>
+<li>执行：ALU执行运算</li>
+<li>访存：必要时访问内存</li>
+<li>写回：将结果写回寄存器或内存</li>
+</ol>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LGXwbj1WdoBNSqxTn0Pcii1ynPg.png" src-width="750" src-height="301" align="center"/>
+
+<h3 id="关键性能参数"><a href="#关键性能参数" class="headerlink" title="关键性能参数"></a>关键性能参数</h3><ul>
+<li><p>主频：CPU时钟频率，决定单核处理速度</p>
+<ul>
+<li>计算公式：<code>主频 = 外频 × 倍频</code></li>
+<li>3.0GHz主频，一秒钟可以产生30亿个脉冲信号</li>
+<li>基频：CPU内存时钟频率</li>
+<li>倍频：CPU通常就是在内部设计有一个锁相环频率发生器，对于输入的时钟信号进行分频处理，按照一定比例提高输入的外频频率，从而得到CPU的实际工作频率，这个比例就称之为倍频系数（简称倍频）</li>
+<li>外频：除cpu外部的一些设备工作的频率，一般工作在较低的频率下</li>
+<li>睿频：intel推出的自动提升处理器频率的技术，需要在BIOS下做一些性能相关的预制设置关掉节能相关项</li>
+</ul>
+</li>
+<li><p>核心数：物理核心数量，决定并行处理能力</p>
+</li>
+<li><p>线程数：通过超线程技术(如Intel的Hyper-Threading，AMD的SMT)，单核可虚拟为多逻辑核</p>
+</li>
+<li><p>缓存：CPU缓存是芯片上的小型高速内存（基于SRAM），临时存储CPU需要快速【预取】的数据</p>
+<ul>
+<li>L1缓存：最快容量最小，范围128KB到2MB之间</li>
+<li>L2缓存：响应速度和容量居中，可以每个核心独有，也可以共享，范围256KB到32MB之间</li>
+<li>L3缓存：响应速度最慢容量最大，通常都是共享的，范围1MB到128MB之间</li>
+</ul>
+</li>
+<li><p>架构：Intel和AMD的x86架构的复杂指令集CISC，IBM是PowerPC架构和ARM公司的ARM架构的精简指令集RISC，目前还有 RISC-V开源免费的架构</p>
+<ul>
+<li>ARM架构：进阶精简指令集，国产的飞腾，鲲鹏</li>
+<li>x86_64架构：主要就是Intel，AMD，国产海光（amd授权架构）</li>
+<li>MIPS架构：精简指令集，07年中科院计算机研究所获得处理器IP的全部专利和总线，指令集授权，2021年信息技术应用创新主论坛发布龙芯自主指令系统架构（LoongArch），主要用于国防科技、交换机、路由器等，在性能上和ARM还有一定差距</li>
+<li>RISC-V架构：新兴的架构，开源免费，不需要授权费，近几年受关注，前景巨大？</li>
+</ul>
+</li>
+<li><p>制程工艺：指制造CPU的集成电路的精细度，14nm，10nm，7nm等</p>
+</li>
+<li><p>内存通道数：CPU能够同时与内存进行数据交互的独立通道的最大数量</p>
+</li>
+<li><p>功耗TDP：CPU满载处理器芯片散发出来的热量需要通过散热解决方案散发出来的平均功率值单位为瓦（W）</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://jfkb.sugon.com/index.php?doc-view-1619">NUMA</a>：Non-Uniform Memory Access非统一内存访问，是为了优化多处理器系统中内存访问性能的重要架构设计，将系统中的内存划分为多个本地内存区域，每个区域与特定的一组处理器核心相对应，形成一个个相对独立的NUMA节点，<a target="_blank" rel="noopener" href="http://jfkb.sugon.com/index.php?doc-view-1668">numa简介</a></p>
+</li>
+<li><p>SNC：Sub NUMA Clustering子非统一内存访问集群，一种与计算机系统内存架构和处理器性能优化技术，在NUMA架构下进一步优化CPU访问内存的性能</p>
+</li>
+<li><p>PCU：CPU内Power Control Unit功耗控制单元，PCU以1ms速度实时检测核心的温度、电流及功耗等参数</p>
+</li>
+<li><p>可扩展性：双路（一个主板装两个CPU），四路（一个主板装四个CPU）</p>
+</li>
+<li><p>虚拟化：intel的VT-x</p>
+</li>
+<li><p>PCIe总线：cpu支持的pcie速率和通道数</p>
+</li>
+<li><p>UPI，CXL2.0，CPU封装（LGA，PGA和BGA）和接口</p>
+</li>
+</ul>
+<h3 id="CPU研发阶段样品"><a href="#CPU研发阶段样品" class="headerlink" title="CPU研发阶段样品"></a>CPU研发阶段样品</h3><ul>
+<li>Engineering Sample（ES） - 工程样品阶段</li>
+<li>Qualification Sample（QS） - 验证样品阶段</li>
+<li>Commercial Sample（CS） - 商业样品阶段</li>
+</ul>
+<h3 id="多核与多处理器技术"><a href="#多核与多处理器技术" class="headerlink" title="多核与多处理器技术"></a>多核与多处理器技术</h3><ul>
+<li><p>片内互联：</p>
+<ul>
+<li>Intel的Mesh架构：二维网格布局</li>
+<li>AMD的Infinity Fabric：优化多核间通信效率</li>
+</ul>
+</li>
+<li><p>片间互联：</p>
+<ul>
+<li>UPI (Ultra Path Interconnect)</li>
+<li>QPI (QuickPath Interconnect)</li>
+<li>提升多处理器服务器扩展性</li>
+</ul>
+</li>
+</ul>
+<h3 id="服务器CPU型号解析"><a href="#服务器CPU型号解析" class="headerlink" title="服务器CPU型号解析"></a>服务器CPU型号解析</h3><ul>
+<li><p>Intel Xeon系列：</p>
+<ul>
+<li>型号示例：Platinum 8260</li>
+<li>首位数字代表代际(8为第二代可扩展处理器)</li>
+<li>后缀标识特性(N为网络优化，T为功耗优化)</li>
+</ul>
+</li>
+<li><p>AMD EPYC系列：</p>
+<ul>
+<li>采用Chiplet设计</li>
+<li>通过高带宽互联整合多计算单元</li>
+</ul>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/hxg3fzbv75tNZVW1tN40iA">Intel和AMD服务器CPU速查表</a></p>
+</li>
+</ul>
+<h3 id="业务选型考量因素"><a href="#业务选型考量因素" class="headerlink" title="业务选型考量因素"></a>业务选型考量因素</h3><ul>
+<li>计算密集型：优先考虑高核心数、高主频</li>
+<li>内存密集型：优先考虑内存通道数和内存容量</li>
+<li>I&#x2F;O密集型：优先考虑PCIe通道数和带宽</li>
+<li>虚拟化环境：考虑虚拟化扩展指令集支持</li>
+<li>高性能计算：考虑向量计算能力和专用指令集</li>
+</ul>
+<h3 id="Intel和AMD服务器CPU命名规则"><a href="#Intel和AMD服务器CPU命名规则" class="headerlink" title="Intel和AMD服务器CPU命名规则"></a>Intel和AMD服务器CPU命名规则</h3><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/NszMbI7mbog211xBFGfcGpX1nrd.png" src-width="429" src-height="516" align="center"/>
+
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/KmIubhp2qo4KSVxifbsc8EOjnse.png" src-width="683" src-height="335" align="center"/>
+
+<h3 id="Intel的UPI和AMD的xGMI的CPU互联带宽"><a href="#Intel的UPI和AMD的xGMI的CPU互联带宽" class="headerlink" title="Intel的UPI和AMD的xGMI的CPU互联带宽"></a>Intel的UPI和AMD的xGMI的CPU互联带宽</h3><p>服务器CPU数量超过一颗时都需要采用互联技术实现多颗CPU之间的通信</p>
+<h4 id="Intel的CPU互联技术QPI或UPI"><a href="#Intel的CPU互联技术QPI或UPI" class="headerlink" title="Intel的CPU互联技术QPI或UPI"></a>Intel的CPU互联技术QPI或UPI</h4><h4 id="ADM的CPU互联技术xGMI"><a href="#ADM的CPU互联技术xGMI" class="headerlink" title="ADM的CPU互联技术xGMI"></a>ADM的CPU互联技术xGMI</h4><h2 id="Intel-CPU开机时序解析"><a href="#Intel-CPU开机时序解析" class="headerlink" title="Intel CPU开机时序解析"></a>Intel CPU开机时序解析</h2><p>系统会在不同的电源状态Power States间转换：</p>
+<ul>
+<li><b>G3</b><b> (机械关机&#x2F;深度睡眠):</b> 完全断电（除了RTC）。</li>
+<li><b>S5</b><b> (软关机):</b> 系统关闭，但电源仍可由按钮或网络唤醒，主板有部分待机电压。</li>
+<li><b>S4</b><b> (休眠):</b> 内存内容保存到硬盘，系统深度休眠。</li>
+<li><b>S3</b><b> (睡眠&#x2F;挂起到内存):</b> CPU停止工作，但内存保持供电以维持内容。</li>
+<li><b>S0</b><b> (工作状态):</b> 系统完全运行。</li>
+<li><b>S0ix</b><b> (现代待机低功耗空闲):</b> <code>S0</code>状态下的低功耗模式。</li>
+<li><b>C10</b><b>:</b> 处理器深度封装 C-state。</li>
+<li><b>Pseudo-G3</b><b> (pG3 - 伪G3):</b> 平台特定的低功耗状态，可能只有 <code>VCCRTC</code> 和最少的唤醒逻辑供电。</li>
+</ul>
+<p>核心组件，处理器（Processor&#x2F;CPU&#x2F;Soc）：核心计算单元，发出许多控制信号；平台逻辑（Platform Login）通常由嵌入式控制器（EC - Embedded Controller）管理，负责协调电源时序，服务器上CPLD；电压调节器（VR - Voltage Regulator）提供各种所需的电压轨。</p>
+<p>信号类型</p>
+<ul>
+<li><b>电源轨 (Power Rails):</b> 提供电压，如 <code>VCCRTC</code>, <code>VCCPRIM_*</code>, <code>VDD2</code>, <code>VCCCORE</code>。</li>
+<li><b>电源就绪信号 (Power Good Signals):</b> 表明某个或某组电源轨已稳定，如 <code>RSMRST_PWRGD</code>, <code>ALL_SYS_PWRGD</code>, <code>IMVP_VR_READY</code>。</li>
+<li><b>控制信号 (Control Signals):</b> 启用&#x2F;禁用 VR 或指示状态转换，如 <code>SLP_S*</code>, <code>PRIM_VR_EN</code>, <code>PLT_PWROK</code>, <code>SYS_PWROK</code>。</li>
+<li><b>复位信号 (Reset Signals):</b> 在电源稳定前将组件保持在复位状态，如 <code>RTCRST#</code>, <code>RSMRST#</code>, <code>PLTRST#</code>, <code>ESPI_RESET#</code>。</li>
+<li><b>睡眠信号 (Sleep Signals - </b><b>SLP_*</b><b>):</b> 处理器输出，指示期望的睡眠状态 (<code>SLP_S5#</code>, <code>SLP_S4#</code>, <code>SLP_S3#</code>, <code>SLP_A#</code>, <code>SLP_SO#</code>)。平台使用这些信号控制电源平面。</li>
+<li><b>eSPI 虚拟线 (eSPI Virtual Wires):</b> 许多传统的硬件信号（如 <code>SLP_S*</code>, <code>PRIMPWRDNACK</code>, <code>PRIMACK#</code>）可以通过 eSPI 总线在处理器和 EC 之间传输，这可能改变相对于硬连线信号的时序。</li>
+</ul>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/618626676">服务器完整上电时序解读</a></p>
+<hr>
+<h2 id="📌-国产CPU"><a href="#📌-国产CPU" class="headerlink" title="📌 国产CPU"></a>📌 国产CPU</h2><p>国产CPU主要包括以下几类：兆芯，海光，飞腾，鲲鹏，龙芯，申威</p>
+<p>详细规格可参考：<a target="_blank" rel="noopener" href="https://www.modb.pro/db/650846">国产6大CPU最新规格概述</a></p>
+<p>2018年10月，海光CPU正式获得微软公司WindowsServer2019的认证支持，2019年2月，海光CPU正式获得VMWare公司ESXI7.0的认证支持，2019年3月，海光CPU正式获得Redhat、SUSE等公司LinuxOS的认证支持，2021年8月，海光CPU完成了与阿里云的兼容性互认证。海光CPU产品得到了业界主流操作系统和云计算厂商的认证认可。 </p>
+<hr>
+<h2 id="📌-性能测试方法"><a href="#📌-性能测试方法" class="headerlink" title="📌 性能测试方法"></a>📌 性能测试方法</h2><p>常见的CPU性能测试工具，speccpu最常使用，Cinebench，3DMark，PCMark，Sysbench，CPU-Z，AIDA64，SuperPI，Prime95（P95）</p>
+<h3 id="speccpu测试"><a href="#speccpu测试" class="headerlink" title="speccpu测试"></a>speccpu测试</h3><p>SPEC CPU 是由 SPEC（Standard Performance Evaluation Corporation，标准性能评估公司）推出的一系列用于对 CPU 进行基准测试的工具集，用于精准评估 CPU 性能的权威测试工具，历经了多个版本的迭代更新speccpu2000,speccpu2006,speccpu2017</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># [下载speccpu2017的镜像文件](https://pan.baidu.com/s/1kMoMJ5Ufg5oZql4HjyacAg#list/path=%2F)提取码5thr</span></span><br><span class="line"><span class="comment"># 安装相关依赖包</span></span><br><span class="line">yum install -y libnsl.x86_64, gcc, gcc-c++, libxml2.x86_64, libgfortran, libnsl, libnsl2, gcc-gfortran, g++, libaio-devel</span><br><span class="line"><span class="comment"># 挂载镜像文件</span></span><br><span class="line">mount -t iso9660 cpu2017-1.0.2.iso /mnt &amp;&amp; <span class="built_in">cd</span> /mnt</span><br><span class="line"><span class="comment"># 安装</span></span><br><span class="line">./install.sh -d /root/cpu2017 -f </span><br><span class="line"><span class="comment"># 安装报错</span></span><br><span class="line"><span class="comment"># specperl: error while loading shared libraries: libnsl.so.1: cannot open shared object file: No such file or directory</span></span><br><span class="line"><span class="comment"># 解决办法</span></span><br><span class="line">yum install -y libnsl.so</span><br><span class="line">find / -name libnsl.so</span><br><span class="line"><span class="built_in">ln</span> -s /lib64/libnsl.so.3.0.0 /lib64/libnsl.so.1</span><br><span class="line"><span class="comment"># 修改软件配置文件gcc路径</span></span><br><span class="line"><span class="comment"># 设置睿频模式</span></span><br><span class="line">cpupower frequency-set -g performance</span><br><span class="line">cpupower -c all frequency-set -g performance</span><br><span class="line"><span class="comment"># 查看频率</span></span><br><span class="line">watch -n1 “<span class="built_in">cat</span> /proc/cpuinfo | grep <span class="string">&quot;cpu MHz&quot;</span></span><br><span class="line"><span class="comment"># BIOS下打开performce模式，关闭虚拟化，开启turbo，numa，关节能cstate和mwait</span></span><br><span class="line"><span class="comment"># 测试占用内存太大，需要放开限制</span></span><br><span class="line"><span class="built_in">ulimit</span> -s unlimited</span><br><span class="line"><span class="comment"># 测试指令</span></span><br><span class="line">./runcpu -c …/config/Example-gcc-linux-aarch64.cfg intrate</span><br><span class="line"><span class="comment"># 重跑清缓存数据：speccpu清除缓存：rm -fr benchspec/CPU/&lt;em&gt;/run/&lt;/em&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>原文链接：<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41897488/article/details/143367894">https://blog.csdn.net/qq_41897488/article/details/143367894</a></p>
+<h3 id="UnixBench测试（用于测量单核和多核性能）："><a href="#UnixBench测试（用于测量单核和多核性能）：" class="headerlink" title="UnixBench测试（用于测量单核和多核性能）："></a>UnixBench测试（用于测量单核和多核性能）：</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;em&gt;#下载并安装&lt;/em&gt;</span><br><span class="line">wget https://github.com/kdlucas/byte-unixbench/archive/v5.1.3.tar.gz</span><br><span class="line">tar -zxvf v5.1.3.tar.gz</span><br><span class="line"><span class="built_in">cd</span> byte-unixbench-5.1.3/UnixBench</span><br><span class="line">make</span><br><span class="line">&lt;em&gt;# 单核测试&lt;/em&gt;</span><br><span class="line">./Run -c 1</span><br><span class="line">&lt;em&gt;# 多核测试(先获取CPU线程数)&lt;/em&gt;<span class="built_in">cat</span> /proc/cpuinfo | grep <span class="string">&quot;processor&quot;</span> | <span class="built_in">wc</span> -l</span><br><span class="line">./Run -c &#123;core&#125;</span><br><span class="line">&lt;em&gt;# 测试结束后参考INDEX数值评估性能&lt;/em&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="SuperPI计算（测试通过计算π值测试CPU计算能力）："><a href="#SuperPI计算（测试通过计算π值测试CPU计算能力）：" class="headerlink" title="SuperPI计算（测试通过计算π值测试CPU计算能力）："></a>SuperPI计算（测试通过计算π值测试CPU计算能力）：</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;em&gt;#下载并编译&lt;/em&gt;</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/Fibonacci43/SuperPI.git</span><br><span class="line"><span class="built_in">cd</span> ./SuperPI</span><br><span class="line">gcc -O -funroll-loops -fomit-frame-pointer pi_fftcs.c fftsg_h.c -lm -o pi_css5</span><br><span class="line"></span><br><span class="line">&lt;em&gt;# 计算精度为1&lt;&lt;<span class="string">22=4194304的π值&lt;/em&gt;</span></span><br><span class="line"><span class="string">./pi_css5 $((1&lt;&lt;22</span>))</span><br><span class="line">&lt;em&gt;# 计算时间越短表示计算能力越强# 可用于计算圆周率小数点后的3200万位数&lt;/em&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="stress-ng压测cpu，内存"><a href="#stress-ng压测cpu，内存" class="headerlink" title="stress-ng压测cpu，内存"></a>stress-ng压测cpu，内存</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下载附件  stress-ng.zip</span></span><br><span class="line"><span class="comment">#上传到linux系统中并解压，root权限执行 </span></span><br><span class="line"><span class="built_in">chmod</span> +x stress-ng</span><br><span class="line"><span class="comment">#常规压测命令有以下三个：</span></span><br><span class="line"><span class="comment">#内存压测：</span></span><br><span class="line">./stress-ng  --vm 128  --vm-bytes  96%  -t  2m</span><br><span class="line">cpu压测：</span><br><span class="line">./stress-ng  -c  0  --cpu-method  all  -t  2m</span><br><span class="line"><span class="comment">#指定cpu核心压测：</span></span><br><span class="line">taskset -c 41-63 stress-ng --cpu 23 --cpu-method all –t 2m</span><br><span class="line"><span class="comment">#参数解释：</span></span><br><span class="line"><span class="comment"># --vm 128  指的是启动128个线程给内存压力，根据实际cpu线程数指定。</span></span><br><span class="line"><span class="comment"># --vm-bytes 96%   指的是最多使用96%的内存，根据内存容量指定。</span></span><br><span class="line"><span class="comment"># -t  2m  指的是压测2分钟，根据实际需求指定。</span></span><br><span class="line"><span class="comment"># -c  0 指的是压测所有cpu核心。</span></span><br><span class="line"><span class="comment"># --cpu-method all 指的是让cpu是用多种计算方法或算力进行计算，模拟cpu使用负载。</span></span><br><span class="line"><span class="comment"># taskset -c 41-63指的是指定压测41-63核心。</span></span><br><span class="line"><span class="comment">#--cpu 23指定使用多少个cpu核心来压测，与上一个指定压测的核心数量相同。</span></span><br><span class="line"><span class="comment"># 命令组合：</span></span><br><span class="line">watch  -n  20 [压测命令]</span><br><span class="line"><span class="comment"># 每次压测命令执行完毕后等待20秒，开始下一轮压测，模拟压力起伏。</span></span><br><span class="line"><span class="built_in">nohup</span>  watch -n 20 [压测命令]  &amp;</span><br><span class="line"><span class="comment">#把压测放入后台运行，不影响前台操作。通过ssh登录退出后不影响后台任务（注：通过终端工具如xshell等，ssh到linu系统的，必须使用 exit 指令退出，直接关闭端口会停止后台任务。）</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="性能调优"><a href="#性能调优" class="headerlink" title="性能调优"></a>性能调优</h2><h3 id="BIOS性能项设置"><a href="#BIOS性能项设置" class="headerlink" title="BIOS性能项设置"></a>BIOS性能项设置</h3><p>打开performance模式，关闭虚拟化相关设置，开turbo，numa，关节能Cstate和mwait</p>
+<h3 id="OS配置"><a href="#OS配置" class="headerlink" title="OS配置"></a>OS配置</h3><p>对于4k页表的操作系统，在跑int整型时建议配置大页内存</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"># OS页表大小查询命令：</span><br><span class="line">getconf PAGESIZE</span><br><span class="line">#在配置前需要先安装大页库文件：</span><br><span class="line">yum -y install libhuge</span><br><span class="line">echo 100000 &gt; /proc/sys/vm/nr_hugepages</span><br><span class="line">export HUGETLB_MORECORE=yes</span><br><span class="line">export LD_PRELOAD=/usr/lib64/libhugetlbfs.so</span><br><span class="line"># 系统下睿频设置：系统下使用命令设置</span><br><span class="line">cpupower frequency-set -g performance</span><br><span class="line">cpupower -c all frequency-set -g performance</span><br><span class="line"># 或者写进/etc/default配置文件锁频</span><br><span class="line">cd /etc/default</span><br><span class="line">vim grub</span><br><span class="line"># 在GRUB_CMDLINE_LINUX这一行中的quiet后面增加 processor.max_cstate=0 intel_idle.max_cstate=0 idle=poll，保存后退出vim</span><br><span class="line">sed -i ‘s/GRUB_CMDLINE_LINUX=“crashkernel=auto biosdevname=0 net.ifnames=0 rhgb quiet”/GRUB_CMDLINE_LINUX=“crashkernel=auto biosdevname=0 net.ifnames=0 rhgb quiet processor.max_cstate=0 intel_idle.max_cstate=0 idle=poll”/g’ /etc/default/grub</span><br><span class="line"># 使新增加的参数生效,重新生成grub.cfg</span><br><span class="line">find / -name grub.cfg</span><br><span class="line">grub2-mkconfig -o /boot/grub2/grub.cfg #-o 后接 grub.cfg文件在本机路径</span><br><span class="line">grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg</span><br><span class="line">#重启服务器</span><br><span class="line">reboot</span><br><span class="line">#进入系统后，若失效，则执行</span><br><span class="line">cpupower -c all frequency-set -g performance设置cpu的所有核为性能模式</span><br><span class="line">#使用命令turbostat 1检查cpu的所有核的实际运行频率</span><br></pre></td></tr></table></figure>
+
+<h3 id="升级gcc和glibc版本，系统自带的gcc版本一般较低"><a href="#升级gcc和glibc版本，系统自带的gcc版本一般较低" class="headerlink" title="升级gcc和glibc版本，系统自带的gcc版本一般较低"></a>升级gcc和glibc版本，系统自带的gcc版本一般较低</h3><h3 id="绑核设置"><a href="#绑核设置" class="headerlink" title="绑核设置"></a>绑核设置</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在配置文件中修改copies和thread以及相应的绑核</span></span><br><span class="line"><span class="comment"># 通过taskset numactl做绑核设置，单核不做绑核会一直换核心</span></span><br><span class="line"><span class="comment"># 测试指令前加taskset -c CPU核心数：</span></span><br><span class="line">taskset -c 5 runcpu --config=test.cfg --tune=base --iterations=1 --threads=1 600.perlbench_s 602.gcc_s 605.mcf_s 620.omnetpp_s 623.xalancbmk_s 625.x264_s 631.deepsjeng_s 641.leela_s 648.exchange2_s 657.xz_s</span><br><span class="line"><span class="comment"># numactl -C：用于指定要绑定的 CPU 核心编号: 测试指令前加numactl -c CPU核心数</span></span><br><span class="line">yum install numactl -y</span><br><span class="line">dmesg | grep -i numa</span><br><span class="line"><span class="comment"># 查看输出结果： 如果输出结果为： No NUMA configuration found 说明numa为disable，如果不是上面的内容说明numa为enable</span></span><br><span class="line"><span class="comment"># 测试指令前加numactl -c CPU核心数:</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="编译参数优化"><a href="#编译参数优化" class="headerlink" title="编译参数优化"></a>编译参数优化</h3><p>如下为SPECcpu2017 Rate FP的优化参数： OPTIMIZE &#x3D; -Ofast -g -pipe -mcpu&#x3D;cortex-a72+crypto+crc -march&#x3D;armv8-a+crypto+crc -funroll-loops Int和fp的编译参数不一样，具体参考cfg附件内相关部分内容</p>
+<h3 id="透明大页"><a href="#透明大页" class="headerlink" title="透明大页"></a>透明大页</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 进行SpeedFp的时候需要设置以下3个变量，关闭THP透传大页后再运行，以优化性能</span></span><br><span class="line"><span class="built_in">export</span> OMP_STACKSIZE=1G</span><br><span class="line"><span class="built_in">export</span> OMP_WAIT_POLICY=active</span><br><span class="line"><span class="built_in">export</span> OMP_PROC_BIND=<span class="literal">true</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/enabled</span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/defrag</span><br></pre></td></tr></table></figure>
+
+<h2 id="国内外CPU技术发展趋势"><a href="#国内外CPU技术发展趋势" class="headerlink" title="国内外CPU技术发展趋势"></a>国内外CPU技术发展趋势</h2><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/N8lYbFoa4o4qVxxmWgFcvicqn1b.png" src-width="2560" src-height="1440" align="center"/>
+
+<hr>
+<h2 id="📚-参考资料"><a href="#📚-参考资料" class="headerlink" title="📚 参考资料"></a>📚 参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.intel.com/content/www/us/en/products/details/processors/xeon.html">Intel Xeon官方文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.amd.com/en/processors/epyc">AMD EPYC官方文</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.nextplatform.com/2021/04/19/deep-dive-into-intels-ice-lake-xeon-sp-architecture/">深入了解intel icelake架构</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.intel.com/content/www/us/en/developer/articles/technical/fourth-generation-xeon-scalable-family-overview.html">The 4th Gen Intel® Xeon® Scalable处理概览</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/s321GegSdIB8dSa9StOYKg">英特尔6代cpu介绍</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/CrayonW">wangjun</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">https://crayon.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://crayon.github.io" target="_blank">Crayon Personal Blog site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU/">服务器CPU</a><a class="post-meta__tags" href="/tags/cpu%E6%9E%B6%E6%9E%84/">cpu架构</a><a class="post-meta__tags" href="/tags/cpu%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0/">cpu性能参数</a><a class="post-meta__tags" href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/">服务器硬件</a><a class="post-meta__tags" href="/tags/cpu%E6%B5%8B%E8%AF%95%E8%B0%83%E4%BC%98/">cpu测试调优</a></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg" target="_blank"><img class="post-qr-code-img" src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Wechat_20250530132040.jpg" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg" target="_blank"><img class="post-qr-code-img" src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Alipay_20250530131955.jpg" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" title="lspci命令使用和解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_lspci_command.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">lspci命令使用和解析</div></div><div class="info-2"><div class="info-item-1">本文详细介绍Linux系统中 lspci 命令的使用与解析，涵盖常用参数（-v/-n等）、应用场景（设备检测、配置查看），解析总线地址、设备类型及VendorID等输出信息，并附多命令示例，助用户掌握PCI设备信息查询方法。</div></div></div></a><a class="pagination-related" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器GPU知识手册"><img class="cover" src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_gpu.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">服务器GPU知识手册</div></div><div class="info-2"><div class="info-item-1">本文系统讲解服务器GPU的核心知识，涵盖基础概念（GPU拓扑结构、核心参数如HBM/HGX等）、关键技术（CUDA Core/Tensor Core/RT Core、NVLink互联技术）、环境安装与测试方法（nvidia-smi工具、shoc-master/cuda-samples等测试用例）、故障诊断（XID错误解析）及发展趋势，是服务器GPU技术的综合性知识手册。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/" title="服务器硬件扫盲"><img class="cover" src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_hard.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2025-06-04</div><div class="info-item-2">服务器硬件扫盲</div></div><div class="info-2"><div class="info-item-1">本文系统讲解服务器硬件的基础与核心知识，涵盖服务器基本介绍（爆炸图解析、分类标准）、核心组成部件（CPU/内存/硬盘/PSU/网卡的参数与功能）、外部设计（机架式服务器接口与扩展）、主板架构（双CPU互联、BMC管理芯片）及扩展知识（GPU服务器设计难点、硬件与软件关联），并附U位、x86架构、OCP网卡等关键术语解释，是服务器硬件入门的综合性扫盲手册。</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="gitalk-container"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://avatars.githubusercontent.com/u/17792594?v=4&amp;size=64" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">wangjun</div><div class="author-info-description">专注分享计算机技术与行业动态，欢迎关注！</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/CrayonW"><i class="fab fa-github"></i><span>关注我</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/CrayonW" target="_blank" title="Github"><i class="fab fa-github" style="color: #hdhfbb;"></i></a><a class="social-icon" href="mailto:wasdthacker@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #000000;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C"><span class="toc-number">1.</span> <span class="toc-text">服务器CPU知识手册</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%F0%9F%93%8C-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E4%B8%8E%E5%8A%9F%E8%83%BD"><span class="toc-number">1.1.</span> <span class="toc-text">📌 基本概念与功能</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E4%B9%89%E4%B8%8E%E4%BD%9C%E7%94%A8"><span class="toc-number">1.1.1.</span> <span class="toc-text">定义与作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E7%BB%84%E6%88%90"><span class="toc-number">1.1.2.</span> <span class="toc-text">核心组成</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%87%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.3.</span> <span class="toc-text">指令执行流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0"><span class="toc-number">1.1.4.</span> <span class="toc-text">关键性能参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CPU%E7%A0%94%E5%8F%91%E9%98%B6%E6%AE%B5%E6%A0%B7%E5%93%81"><span class="toc-number">1.1.5.</span> <span class="toc-text">CPU研发阶段样品</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E6%A0%B8%E4%B8%8E%E5%A4%9A%E5%A4%84%E7%90%86%E5%99%A8%E6%8A%80%E6%9C%AF"><span class="toc-number">1.1.6.</span> <span class="toc-text">多核与多处理器技术</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E5%9E%8B%E5%8F%B7%E8%A7%A3%E6%9E%90"><span class="toc-number">1.1.7.</span> <span class="toc-text">服务器CPU型号解析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%9A%E5%8A%A1%E9%80%89%E5%9E%8B%E8%80%83%E9%87%8F%E5%9B%A0%E7%B4%A0"><span class="toc-number">1.1.8.</span> <span class="toc-text">业务选型考量因素</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Intel%E5%92%8CAMD%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99"><span class="toc-number">1.1.9.</span> <span class="toc-text">Intel和AMD服务器CPU命名规则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Intel%E7%9A%84UPI%E5%92%8CAMD%E7%9A%84xGMI%E7%9A%84CPU%E4%BA%92%E8%81%94%E5%B8%A6%E5%AE%BD"><span class="toc-number">1.1.10.</span> <span class="toc-text">Intel的UPI和AMD的xGMI的CPU互联带宽</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Intel%E7%9A%84CPU%E4%BA%92%E8%81%94%E6%8A%80%E6%9C%AFQPI%E6%88%96UPI"><span class="toc-number">1.1.10.1.</span> <span class="toc-text">Intel的CPU互联技术QPI或UPI</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ADM%E7%9A%84CPU%E4%BA%92%E8%81%94%E6%8A%80%E6%9C%AFxGMI"><span class="toc-number">1.1.10.2.</span> <span class="toc-text">ADM的CPU互联技术xGMI</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Intel-CPU%E5%BC%80%E6%9C%BA%E6%97%B6%E5%BA%8F%E8%A7%A3%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">Intel CPU开机时序解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%F0%9F%93%8C-%E5%9B%BD%E4%BA%A7CPU"><span class="toc-number">1.3.</span> <span class="toc-text">📌 国产CPU</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%F0%9F%93%8C-%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E6%96%B9%E6%B3%95"><span class="toc-number">1.4.</span> <span class="toc-text">📌 性能测试方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#speccpu%E6%B5%8B%E8%AF%95"><span class="toc-number">1.4.1.</span> <span class="toc-text">speccpu测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#UnixBench%E6%B5%8B%E8%AF%95%EF%BC%88%E7%94%A8%E4%BA%8E%E6%B5%8B%E9%87%8F%E5%8D%95%E6%A0%B8%E5%92%8C%E5%A4%9A%E6%A0%B8%E6%80%A7%E8%83%BD%EF%BC%89%EF%BC%9A"><span class="toc-number">1.4.2.</span> <span class="toc-text">UnixBench测试（用于测量单核和多核性能）：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SuperPI%E8%AE%A1%E7%AE%97%EF%BC%88%E6%B5%8B%E8%AF%95%E9%80%9A%E8%BF%87%E8%AE%A1%E7%AE%97%CF%80%E5%80%BC%E6%B5%8B%E8%AF%95CPU%E8%AE%A1%E7%AE%97%E8%83%BD%E5%8A%9B%EF%BC%89%EF%BC%9A"><span class="toc-number">1.4.3.</span> <span class="toc-text">SuperPI计算（测试通过计算π值测试CPU计算能力）：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#stress-ng%E5%8E%8B%E6%B5%8Bcpu%EF%BC%8C%E5%86%85%E5%AD%98"><span class="toc-number">1.4.4.</span> <span class="toc-text">stress-ng压测cpu，内存</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">1.5.</span> <span class="toc-text">性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BIOS%E6%80%A7%E8%83%BD%E9%A1%B9%E8%AE%BE%E7%BD%AE"><span class="toc-number">1.5.1.</span> <span class="toc-text">BIOS性能项设置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#OS%E9%85%8D%E7%BD%AE"><span class="toc-number">1.5.2.</span> <span class="toc-text">OS配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%87%E7%BA%A7gcc%E5%92%8Cglibc%E7%89%88%E6%9C%AC%EF%BC%8C%E7%B3%BB%E7%BB%9F%E8%87%AA%E5%B8%A6%E7%9A%84gcc%E7%89%88%E6%9C%AC%E4%B8%80%E8%88%AC%E8%BE%83%E4%BD%8E"><span class="toc-number">1.5.3.</span> <span class="toc-text">升级gcc和glibc版本，系统自带的gcc版本一般较低</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%91%E6%A0%B8%E8%AE%BE%E7%BD%AE"><span class="toc-number">1.5.4.</span> <span class="toc-text">绑核设置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E5%8F%82%E6%95%B0%E4%BC%98%E5%8C%96"><span class="toc-number">1.5.5.</span> <span class="toc-text">编译参数优化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5"><span class="toc-number">1.5.6.</span> <span class="toc-text">透明大页</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%BD%E5%86%85%E5%A4%96CPU%E6%8A%80%E6%9C%AF%E5%8F%91%E5%B1%95%E8%B6%8B%E5%8A%BF"><span class="toc-number">1.6.</span> <span class="toc-text">国内外CPU技术发展趋势</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%F0%9F%93%9A-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">1.7.</span> <span class="toc-text">📚 参考资料</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" title="lspci命令使用和解析"><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_lspci_command.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="lspci命令使用和解析"/></a><div class="content"><a class="title" href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" title="lspci命令使用和解析">lspci命令使用和解析</a><time datetime="2025-06-06T04:37:31.673Z" title="更新于 2025-06-06 12:37:31">2025-06-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/" title="服务器硬件扫盲"><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_hard.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器硬件扫盲"/></a><div class="content"><a class="title" href="/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/" title="服务器硬件扫盲">服务器硬件扫盲</a><time datetime="2025-06-04T05:42:28.000Z" title="更新于 2025-06-04 13:42:28">2025-06-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器内存知识手册"><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_memory.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器内存知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器内存知识手册">服务器内存知识手册</a><time datetime="2025-05-30T03:31:00.000Z" title="更新于 2025-05-30 11:31:00">2025-05-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器GPU知识手册"><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_gpu.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器GPU知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器GPU知识手册">服务器GPU知识手册</a><time datetime="2025-05-30T03:30:54.000Z" title="更新于 2025-05-30 11:30:54">2025-05-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器CPU知识手册"><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/cover_server_cpu.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="服务器CPU知识手册"/></a><div class="content"><a class="title" href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器CPU知识手册">服务器CPU知识手册</a><time datetime="2025-05-30T03:24:28.000Z" title="更新于 2025-05-30 11:24:28">2025-05-30</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div id="footer-wrap"><div class="copyright">&copy;2025 By wangjun</div><div class="footer_custom_text">欢迎到访CrayonW的博客，感谢支持！</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const commentCount = n => {
+    const isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+    if (isCommentCount) {
+      isCommentCount.textContent= n
+    }
+  }
+
+  const initGitalk = (el, path) => {
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGitalk = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+
+    const gitalk = new Gitalk({
+      clientID: 'Ov23liPSOGgbVg7Y1K84',
+      clientSecret: '9c9eba008f3326d8ac58a9422d01260827c1473d',
+      repo: 'blogtalk',
+      owner: 'CrayonW',
+      admin: ['CrayonW'],
+      updateCountCallback: commentCount,
+      ...option,
+      id: isShuoshuo ? path : (option && option.id) || '31f2b5d00cc81ec49b8771e30171fd95'
+    })
+
+    gitalk.render('gitalk-container')
+  }
+
+  const loadGitalk = async(el, path) => {
+    if (typeof Gitalk === 'function') initGitalk(el, path)
+    else {
+      await btf.getCSS('https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css')
+      await btf.getScript('https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.js')
+      initGitalk(el, path)
+    }
+  }
+
+  if (isShuoshuo) {
+    'Gitalk' === 'Gitalk'
+      ? window.shuoshuoComment = { loadComment: loadGitalk }
+      : window.loadOtherComment = loadGitalk
+    return
+  }
+
+  if ('Gitalk' === 'Gitalk' || !false) {
+    if (false) btf.loadComment(document.getElementById('gitalk-container'), loadGitalk)
+    else loadGitalk()
+  } else {
+    window.loadOtherComment = loadGitalk
+  }
+})()</script></div></div></body></html>
