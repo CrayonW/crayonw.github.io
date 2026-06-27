@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crayonw.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"remove","padding":18,"offset":12},"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"flat"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元&#x2F;ALU&#x2F;寄存器）、关键性能参数（主频&#x2F;核心数&#x2F;缓存&#x2F;架构&#x2F;NUMA等）、多核与互联技术（UPI&#x2F;xGMI）、型号解析（Intel Xeon&#x2F;AMD EPYC）、性能测试方法（speccpu&#x2F;UnixBench&#x2F;SuperPI）及调优策略（BIOS设置&#x2F;OS配置&#x2F;绑核优化），并补充国产CPU（海光&#x2F;飞腾&#x2F;龙芯等）发展与认证信息，是服务器CP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="服务器CPU知识手册">
+<meta property="og:url" content="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/index.html">
+<meta property="og:site_name" content="Crayon Personal Blog site">
+<meta property="og:description" content="本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元&#x2F;ALU&#x2F;寄存器）、关键性能参数（主频&#x2F;核心数&#x2F;缓存&#x2F;架构&#x2F;NUMA等）、多核与互联技术（UPI&#x2F;xGMI）、型号解析（Intel Xeon&#x2F;AMD EPYC）、性能测试方法（speccpu&#x2F;UnixBench&#x2F;SuperPI）及调优策略（BIOS设置&#x2F;OS配置&#x2F;绑核优化），并补充国产CPU（海光&#x2F;飞腾&#x2F;龙芯等）发展与认证信息，是服务器CP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LGXwbj1WdoBNSqxTn0Pcii1ynPg.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/NszMbI7mbog211xBFGfcGpX1nrd.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/KmIubhp2qo4KSVxifbsc8EOjnse.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/N8lYbFoa4o4qVxxmWgFcvicqn1b.png">
+<meta property="article:published_time" content="2025-05-30T03:24:28.000Z">
+<meta property="article:modified_time" content="2025-05-30T03:24:28.000Z">
+<meta property="article:author" content="wangjun">
+<meta property="article:tag" content="服务器CPU">
+<meta property="article:tag" content="cpu架构">
+<meta property="article:tag" content="cpu性能参数">
+<meta property="article:tag" content="服务器硬件">
+<meta property="article:tag" content="cpu测试调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LGXwbj1WdoBNSqxTn0Pcii1ynPg.png">
+
+
+<link rel="canonical" href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/","path":"2025/05/30/服务器CPU知识手册/","title":"服务器CPU知识手册"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>服务器CPU知识手册 | Crayon Personal Blog site</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77MYZYRSES"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-77MYZYRSES","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Crayon Personal Blog site" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Crayon Personal Blog site</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">专注分享计算机技术与行业动态，欢迎关注！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://avatars.githubusercontent.com/u/17792594?v=4&size=64">
+      <meta itemprop="name" content="wangjun">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Crayon Personal Blog site">
+      <meta itemprop="description" content="一个分享信息和计算机知识的个人小站点">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="服务器CPU知识手册 | Crayon Personal Blog site">
+      <meta itemprop="description" content="本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元&#x2F;ALU&#x2F;寄存器）、关键性能参数（主频&#x2F;核心数&#x2F;缓存&#x2F;架构&#x2F;NUMA等）、多核与互联技术（UPI&#x2F;xGMI）、型号解析（Intel Xeon&#x2F;AMD EPYC）、性能测试方法（speccpu&#x2F;UnixBench&#x2F;SuperPI）及调优策略（BIOS设置&#x2F;OS配置&#x2F;绑核优化），并补充国产CPU（海光&#x2F;飞腾&#x2F;龙芯等）发展与认证信息，是服务器CPU知识的综合性手册。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          服务器CPU知识手册
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-05-30 11:24:28" itemprop="dateCreated datePublished" datetime="2025-05-30T11:24:28+08:00">2025-05-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">服务器硬件</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">本文系统讲解服务器CPU的核心知识，涵盖基本概念（控制单元/ALU/寄存器）、关键性能参数（主频/核心数/缓存/架构/NUMA等）、多核与互联技术（UPI/xGMI）、型号解析（Intel Xeon/AMD EPYC）、性能测试方法（speccpu/UnixBench/SuperPI）及调优策略（BIOS设置/OS配置/绑核优化），并补充国产CPU（海光/飞腾/龙芯等）发展与认证信息，是服务器CPU知识的综合性手册。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="服务器CPU知识手册"><a href="#服务器CPU知识手册" class="headerlink" title="服务器CPU知识手册"></a>服务器CPU知识手册</h1><h2 id="📌-基本概念与功能"><a href="#📌-基本概念与功能" class="headerlink" title="📌 基本概念与功能"></a>📌 基本概念与功能</h2><h3 id="定义与作用"><a href="#定义与作用" class="headerlink" title="定义与作用"></a>定义与作用</h3><p>服务器CPU负责处理和执行系统指令，与普通CPU相比，服务器CPU需满足：高并发处理能力，高稳定性，长时间运行可靠性，更多核心与线程，更强扩展性；CPU包括运算逻辑部件，寄存器部件和控制器等</p>
+<p>目前CPU内部已经整合了内存控制器DMI，pci链接通信QPI（Intel）</p>
+<h3 id="核心组成"><a href="#核心组成" class="headerlink" title="核心组成"></a>核心组成</h3><ul>
+<li>控制单元：负责指令提取与解码</li>
+<li>算术逻辑单元(ALU)：执行各种运算操作</li>
+<li>寄存器：临时存储数据的高速存储单元</li>
+<li>各类寄存器类型：<ul>
+<li>累加寄存器</li>
+<li>标志寄存器</li>
+<li>程序计数器</li>
+<li>基址寄存器</li>
+<li>变址寄存器</li>
+<li>通用寄存器</li>
+<li>指令寄存器</li>
+<li>栈寄存器</li>
+</ul>
+</li>
+</ul>
+<h3 id="指令执行流程"><a href="#指令执行流程" class="headerlink" title="指令执行流程"></a>指令执行流程</h3><ol>
+<li>取指：从内存中提取指令</li>
+<li>解码：控制单元解析指令</li>
+<li>执行：ALU执行运算</li>
+<li>访存：必要时访问内存</li>
+<li>写回：将结果写回寄存器或内存</li>
+</ol>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LGXwbj1WdoBNSqxTn0Pcii1ynPg.png" src-width="750" src-height="301" align="center"/>
+
+<h3 id="关键性能参数"><a href="#关键性能参数" class="headerlink" title="关键性能参数"></a>关键性能参数</h3><ul>
+<li><p>主频：CPU时钟频率，决定单核处理速度</p>
+<ul>
+<li>计算公式：<code>主频 = 外频 × 倍频</code></li>
+<li>3.0GHz主频，一秒钟可以产生30亿个脉冲信号</li>
+<li>基频：CPU内存时钟频率</li>
+<li>倍频：CPU通常就是在内部设计有一个锁相环频率发生器，对于输入的时钟信号进行分频处理，按照一定比例提高输入的外频频率，从而得到CPU的实际工作频率，这个比例就称之为倍频系数（简称倍频）</li>
+<li>外频：除cpu外部的一些设备工作的频率，一般工作在较低的频率下</li>
+<li>睿频：intel推出的自动提升处理器频率的技术，需要在BIOS下做一些性能相关的预制设置关掉节能相关项</li>
+</ul>
+</li>
+<li><p>核心数：物理核心数量，决定并行处理能力</p>
+</li>
+<li><p>线程数：通过超线程技术(如Intel的Hyper-Threading，AMD的SMT)，单核可虚拟为多逻辑核</p>
+</li>
+<li><p>缓存：CPU缓存是芯片上的小型高速内存（基于SRAM），临时存储CPU需要快速【预取】的数据</p>
+<ul>
+<li>L1缓存：最快容量最小，范围128KB到2MB之间</li>
+<li>L2缓存：响应速度和容量居中，可以每个核心独有，也可以共享，范围256KB到32MB之间</li>
+<li>L3缓存：响应速度最慢容量最大，通常都是共享的，范围1MB到128MB之间</li>
+</ul>
+</li>
+<li><p>架构：Intel和AMD的x86架构的复杂指令集CISC，IBM是PowerPC架构和ARM公司的ARM架构的精简指令集RISC，目前还有 RISC-V开源免费的架构</p>
+<ul>
+<li>ARM架构：进阶精简指令集，国产的飞腾，鲲鹏</li>
+<li>x86_64架构：主要就是Intel，AMD，国产海光（amd授权架构）</li>
+<li>MIPS架构：精简指令集，07年中科院计算机研究所获得处理器IP的全部专利和总线，指令集授权，2021年信息技术应用创新主论坛发布龙芯自主指令系统架构（LoongArch），主要用于国防科技、交换机、路由器等，在性能上和ARM还有一定差距</li>
+<li>RISC-V架构：新兴的架构，开源免费，不需要授权费，近几年受关注，前景巨大？</li>
+</ul>
+</li>
+<li><p>制程工艺：指制造CPU的集成电路的精细度，14nm，10nm，7nm等</p>
+</li>
+<li><p>内存通道数：CPU能够同时与内存进行数据交互的独立通道的最大数量</p>
+</li>
+<li><p>功耗TDP：CPU满载处理器芯片散发出来的热量需要通过散热解决方案散发出来的平均功率值单位为瓦（W）</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://jfkb.sugon.com/index.php?doc-view-1619">NUMA</a>：Non-Uniform Memory Access非统一内存访问，是为了优化多处理器系统中内存访问性能的重要架构设计，将系统中的内存划分为多个本地内存区域，每个区域与特定的一组处理器核心相对应，形成一个个相对独立的NUMA节点，<a target="_blank" rel="noopener" href="http://jfkb.sugon.com/index.php?doc-view-1668">numa简介</a></p>
+</li>
+<li><p>SNC：Sub NUMA Clustering子非统一内存访问集群，一种与计算机系统内存架构和处理器性能优化技术，在NUMA架构下进一步优化CPU访问内存的性能</p>
+</li>
+<li><p>PCU：CPU内Power Control Unit功耗控制单元，PCU以1ms速度实时检测核心的温度、电流及功耗等参数</p>
+</li>
+<li><p>可扩展性：双路（一个主板装两个CPU），四路（一个主板装四个CPU）</p>
+</li>
+<li><p>虚拟化：intel的VT-x</p>
+</li>
+<li><p>PCIe总线：cpu支持的pcie速率和通道数</p>
+</li>
+<li><p>UPI，CXL2.0，CPU封装（LGA，PGA和BGA）和接口</p>
+</li>
+</ul>
+<h3 id="CPU研发阶段样品"><a href="#CPU研发阶段样品" class="headerlink" title="CPU研发阶段样品"></a>CPU研发阶段样品</h3><ul>
+<li>Engineering Sample（ES） - 工程样品阶段</li>
+<li>Qualification Sample（QS） - 验证样品阶段</li>
+<li>Commercial Sample（CS） - 商业样品阶段</li>
+</ul>
+<h3 id="多核与多处理器技术"><a href="#多核与多处理器技术" class="headerlink" title="多核与多处理器技术"></a>多核与多处理器技术</h3><ul>
+<li><p>片内互联：</p>
+<ul>
+<li>Intel的Mesh架构：二维网格布局</li>
+<li>AMD的Infinity Fabric：优化多核间通信效率</li>
+</ul>
+</li>
+<li><p>片间互联：</p>
+<ul>
+<li>UPI (Ultra Path Interconnect)</li>
+<li>QPI (QuickPath Interconnect)</li>
+<li>提升多处理器服务器扩展性</li>
+</ul>
+</li>
+</ul>
+<h3 id="服务器CPU型号解析"><a href="#服务器CPU型号解析" class="headerlink" title="服务器CPU型号解析"></a>服务器CPU型号解析</h3><ul>
+<li><p>Intel Xeon系列：</p>
+<ul>
+<li>型号示例：Platinum 8260</li>
+<li>首位数字代表代际(8为第二代可扩展处理器)</li>
+<li>后缀标识特性(N为网络优化，T为功耗优化)</li>
+</ul>
+</li>
+<li><p>AMD EPYC系列：</p>
+<ul>
+<li>采用Chiplet设计</li>
+<li>通过高带宽互联整合多计算单元</li>
+</ul>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/hxg3fzbv75tNZVW1tN40iA">Intel和AMD服务器CPU速查表</a></p>
+</li>
+</ul>
+<h3 id="业务选型考量因素"><a href="#业务选型考量因素" class="headerlink" title="业务选型考量因素"></a>业务选型考量因素</h3><ul>
+<li>计算密集型：优先考虑高核心数、高主频</li>
+<li>内存密集型：优先考虑内存通道数和内存容量</li>
+<li>I&#x2F;O密集型：优先考虑PCIe通道数和带宽</li>
+<li>虚拟化环境：考虑虚拟化扩展指令集支持</li>
+<li>高性能计算：考虑向量计算能力和专用指令集</li>
+</ul>
+<h3 id="Intel和AMD服务器CPU命名规则"><a href="#Intel和AMD服务器CPU命名规则" class="headerlink" title="Intel和AMD服务器CPU命名规则"></a>Intel和AMD服务器CPU命名规则</h3><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/NszMbI7mbog211xBFGfcGpX1nrd.png" src-width="429" src-height="516" align="center"/>
+
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/KmIubhp2qo4KSVxifbsc8EOjnse.png" src-width="683" src-height="335" align="center"/>
+
+<h3 id="Intel的UPI和AMD的xGMI的CPU互联带宽"><a href="#Intel的UPI和AMD的xGMI的CPU互联带宽" class="headerlink" title="Intel的UPI和AMD的xGMI的CPU互联带宽"></a>Intel的UPI和AMD的xGMI的CPU互联带宽</h3><p>服务器CPU数量超过一颗时都需要采用互联技术实现多颗CPU之间的通信</p>
+<h4 id="Intel的CPU互联技术QPI或UPI"><a href="#Intel的CPU互联技术QPI或UPI" class="headerlink" title="Intel的CPU互联技术QPI或UPI"></a>Intel的CPU互联技术QPI或UPI</h4><h4 id="ADM的CPU互联技术xGMI"><a href="#ADM的CPU互联技术xGMI" class="headerlink" title="ADM的CPU互联技术xGMI"></a>ADM的CPU互联技术xGMI</h4><h2 id="Intel-CPU开机时序解析"><a href="#Intel-CPU开机时序解析" class="headerlink" title="Intel CPU开机时序解析"></a>Intel CPU开机时序解析</h2><p>系统会在不同的电源状态Power States间转换：</p>
+<ul>
+<li><b>G3</b><b> (机械关机&#x2F;深度睡眠):</b> 完全断电（除了RTC）。</li>
+<li><b>S5</b><b> (软关机):</b> 系统关闭，但电源仍可由按钮或网络唤醒，主板有部分待机电压。</li>
+<li><b>S4</b><b> (休眠):</b> 内存内容保存到硬盘，系统深度休眠。</li>
+<li><b>S3</b><b> (睡眠&#x2F;挂起到内存):</b> CPU停止工作，但内存保持供电以维持内容。</li>
+<li><b>S0</b><b> (工作状态):</b> 系统完全运行。</li>
+<li><b>S0ix</b><b> (现代待机低功耗空闲):</b> <code>S0</code>状态下的低功耗模式。</li>
+<li><b>C10</b><b>:</b> 处理器深度封装 C-state。</li>
+<li><b>Pseudo-G3</b><b> (pG3 - 伪G3):</b> 平台特定的低功耗状态，可能只有 <code>VCCRTC</code> 和最少的唤醒逻辑供电。</li>
+</ul>
+<p>核心组件，处理器（Processor&#x2F;CPU&#x2F;Soc）：核心计算单元，发出许多控制信号；平台逻辑（Platform Login）通常由嵌入式控制器（EC - Embedded Controller）管理，负责协调电源时序，服务器上CPLD；电压调节器（VR - Voltage Regulator）提供各种所需的电压轨。</p>
+<p>信号类型</p>
+<ul>
+<li><b>电源轨 (Power Rails):</b> 提供电压，如 <code>VCCRTC</code>, <code>VCCPRIM_*</code>, <code>VDD2</code>, <code>VCCCORE</code>。</li>
+<li><b>电源就绪信号 (Power Good Signals):</b> 表明某个或某组电源轨已稳定，如 <code>RSMRST_PWRGD</code>, <code>ALL_SYS_PWRGD</code>, <code>IMVP_VR_READY</code>。</li>
+<li><b>控制信号 (Control Signals):</b> 启用&#x2F;禁用 VR 或指示状态转换，如 <code>SLP_S*</code>, <code>PRIM_VR_EN</code>, <code>PLT_PWROK</code>, <code>SYS_PWROK</code>。</li>
+<li><b>复位信号 (Reset Signals):</b> 在电源稳定前将组件保持在复位状态，如 <code>RTCRST#</code>, <code>RSMRST#</code>, <code>PLTRST#</code>, <code>ESPI_RESET#</code>。</li>
+<li><b>睡眠信号 (Sleep Signals - </b><b>SLP_*</b><b>):</b> 处理器输出，指示期望的睡眠状态 (<code>SLP_S5#</code>, <code>SLP_S4#</code>, <code>SLP_S3#</code>, <code>SLP_A#</code>, <code>SLP_SO#</code>)。平台使用这些信号控制电源平面。</li>
+<li><b>eSPI 虚拟线 (eSPI Virtual Wires):</b> 许多传统的硬件信号（如 <code>SLP_S*</code>, <code>PRIMPWRDNACK</code>, <code>PRIMACK#</code>）可以通过 eSPI 总线在处理器和 EC 之间传输，这可能改变相对于硬连线信号的时序。</li>
+</ul>
+<p>参考链接：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/618626676">服务器完整上电时序解读</a></p>
+<hr>
+<h2 id="📌-国产CPU"><a href="#📌-国产CPU" class="headerlink" title="📌 国产CPU"></a>📌 国产CPU</h2><p>国产CPU主要包括以下几类：兆芯，海光，飞腾，鲲鹏，龙芯，申威</p>
+<p>详细规格可参考：<a target="_blank" rel="noopener" href="https://www.modb.pro/db/650846">国产6大CPU最新规格概述</a></p>
+<p>2018年10月，海光CPU正式获得微软公司WindowsServer2019的认证支持，2019年2月，海光CPU正式获得VMWare公司ESXI7.0的认证支持，2019年3月，海光CPU正式获得Redhat、SUSE等公司LinuxOS的认证支持，2021年8月，海光CPU完成了与阿里云的兼容性互认证。海光CPU产品得到了业界主流操作系统和云计算厂商的认证认可。 </p>
+<hr>
+<h2 id="📌-性能测试方法"><a href="#📌-性能测试方法" class="headerlink" title="📌 性能测试方法"></a>📌 性能测试方法</h2><p>常见的CPU性能测试工具，speccpu最常使用，Cinebench，3DMark，PCMark，Sysbench，CPU-Z，AIDA64，SuperPI，Prime95（P95）</p>
+<h3 id="speccpu测试"><a href="#speccpu测试" class="headerlink" title="speccpu测试"></a>speccpu测试</h3><p>SPEC CPU 是由 SPEC（Standard Performance Evaluation Corporation，标准性能评估公司）推出的一系列用于对 CPU 进行基准测试的工具集，用于精准评估 CPU 性能的权威测试工具，历经了多个版本的迭代更新speccpu2000,speccpu2006,speccpu2017</p>
+<pre><code class="language-bash"># [下载speccpu2017的镜像文件](https://pan.baidu.com/s/1kMoMJ5Ufg5oZql4HjyacAg#list/path=%2F)提取码5thr
+# 安装相关依赖包
+yum install -y libnsl.x86_64, gcc, gcc-c++, libxml2.x86_64, libgfortran, libnsl, libnsl2, gcc-gfortran, g++, libaio-devel
+# 挂载镜像文件
+mount -t iso9660 cpu2017-1.0.2.iso /mnt &amp;&amp; cd /mnt
+# 安装
+./install.sh -d /root/cpu2017 -f 
+# 安装报错
+# specperl: error while loading shared libraries: libnsl.so.1: cannot open shared object file: No such file or directory
+# 解决办法
+yum install -y libnsl.so
+find / -name libnsl.so
+ln -s /lib64/libnsl.so.3.0.0 /lib64/libnsl.so.1
+# 修改软件配置文件gcc路径
+# 设置睿频模式
+cpupower frequency-set -g performance
+cpupower -c all frequency-set -g performance
+# 查看频率
+watch -n1 “cat /proc/cpuinfo | grep &quot;cpu MHz&quot;
+# BIOS下打开performce模式，关闭虚拟化，开启turbo，numa，关节能cstate和mwait
+# 测试占用内存太大，需要放开限制
+ulimit -s unlimited
+# 测试指令
+./runcpu -c …/config/Example-gcc-linux-aarch64.cfg intrate
+# 重跑清缓存数据：speccpu清除缓存：rm -fr benchspec/CPU/&lt;em&gt;/run/&lt;/em&gt;
+</code></pre>
+<p>原文链接：<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41897488/article/details/143367894">https://blog.csdn.net/qq_41897488/article/details/143367894</a></p>
+<h3 id="UnixBench测试（用于测量单核和多核性能）："><a href="#UnixBench测试（用于测量单核和多核性能）：" class="headerlink" title="UnixBench测试（用于测量单核和多核性能）："></a>UnixBench测试（用于测量单核和多核性能）：</h3><pre><code class="language-bash">&lt;em&gt;#下载并安装&lt;/em&gt;
+wget https://github.com/kdlucas/byte-unixbench/archive/v5.1.3.tar.gz
+tar -zxvf v5.1.3.tar.gz
+cd byte-unixbench-5.1.3/UnixBench
+make
+&lt;em&gt;# 单核测试&lt;/em&gt;
+./Run -c 1
+&lt;em&gt;# 多核测试(先获取CPU线程数)&lt;/em&gt;cat /proc/cpuinfo | grep &quot;processor&quot; | wc -l
+./Run -c &#123;core&#125;
+&lt;em&gt;# 测试结束后参考INDEX数值评估性能&lt;/em&gt;
+</code></pre>
+<h3 id="SuperPI计算（测试通过计算π值测试CPU计算能力）："><a href="#SuperPI计算（测试通过计算π值测试CPU计算能力）：" class="headerlink" title="SuperPI计算（测试通过计算π值测试CPU计算能力）："></a>SuperPI计算（测试通过计算π值测试CPU计算能力）：</h3><pre><code class="language-bash">&lt;em&gt;#下载并编译&lt;/em&gt;
+git clone https://github.com/Fibonacci43/SuperPI.git
+cd ./SuperPI
+gcc -O -funroll-loops -fomit-frame-pointer pi_fftcs.c fftsg_h.c -lm -o pi_css5
+
+&lt;em&gt;# 计算精度为1&lt;&lt;22=4194304的π值&lt;/em&gt;
+./pi_css5 $((1&lt;&lt;22))
+&lt;em&gt;# 计算时间越短表示计算能力越强# 可用于计算圆周率小数点后的3200万位数&lt;/em&gt;
+</code></pre>
+<h3 id="stress-ng压测cpu，内存"><a href="#stress-ng压测cpu，内存" class="headerlink" title="stress-ng压测cpu，内存"></a>stress-ng压测cpu，内存</h3><pre><code class="language-bash"># 下载附件  stress-ng.zip
+#上传到linux系统中并解压，root权限执行 
+chmod +x stress-ng
+#常规压测命令有以下三个：
+#内存压测：
+./stress-ng  --vm 128  --vm-bytes  96%  -t  2m
+cpu压测：
+./stress-ng  -c  0  --cpu-method  all  -t  2m
+#指定cpu核心压测：
+taskset -c 41-63 stress-ng --cpu 23 --cpu-method all –t 2m
+#参数解释：
+# --vm 128  指的是启动128个线程给内存压力，根据实际cpu线程数指定。
+# --vm-bytes 96%   指的是最多使用96%的内存，根据内存容量指定。
+# -t  2m  指的是压测2分钟，根据实际需求指定。
+# -c  0 指的是压测所有cpu核心。
+# --cpu-method all 指的是让cpu是用多种计算方法或算力进行计算，模拟cpu使用负载。
+# taskset -c 41-63指的是指定压测41-63核心。
+#--cpu 23指定使用多少个cpu核心来压测，与上一个指定压测的核心数量相同。
+# 命令组合：
+watch  -n  20 [压测命令]
+# 每次压测命令执行完毕后等待20秒，开始下一轮压测，模拟压力起伏。
+nohup  watch -n 20 [压测命令]  &amp;
+#把压测放入后台运行，不影响前台操作。通过ssh登录退出后不影响后台任务（注：通过终端工具如xshell等，ssh到linu系统的，必须使用 exit 指令退出，直接关闭端口会停止后台任务。）
+</code></pre>
+<h2 id="性能调优"><a href="#性能调优" class="headerlink" title="性能调优"></a>性能调优</h2><h3 id="BIOS性能项设置"><a href="#BIOS性能项设置" class="headerlink" title="BIOS性能项设置"></a>BIOS性能项设置</h3><p>打开performance模式，关闭虚拟化相关设置，开turbo，numa，关节能Cstate和mwait</p>
+<h3 id="OS配置"><a href="#OS配置" class="headerlink" title="OS配置"></a>OS配置</h3><p>对于4k页表的操作系统，在跑int整型时建议配置大页内存</p>
+<pre><code># OS页表大小查询命令：
+getconf PAGESIZE
+#在配置前需要先安装大页库文件：
+yum -y install libhuge
+echo 100000 &gt; /proc/sys/vm/nr_hugepages
+export HUGETLB_MORECORE=yes
+export LD_PRELOAD=/usr/lib64/libhugetlbfs.so
+# 系统下睿频设置：系统下使用命令设置
+cpupower frequency-set -g performance
+cpupower -c all frequency-set -g performance
+# 或者写进/etc/default配置文件锁频
+cd /etc/default
+vim grub
+# 在GRUB_CMDLINE_LINUX这一行中的quiet后面增加 processor.max_cstate=0 intel_idle.max_cstate=0 idle=poll，保存后退出vim
+sed -i ‘s/GRUB_CMDLINE_LINUX=“crashkernel=auto biosdevname=0 net.ifnames=0 rhgb quiet”/GRUB_CMDLINE_LINUX=“crashkernel=auto biosdevname=0 net.ifnames=0 rhgb quiet processor.max_cstate=0 intel_idle.max_cstate=0 idle=poll”/g’ /etc/default/grub
+# 使新增加的参数生效,重新生成grub.cfg
+find / -name grub.cfg
+grub2-mkconfig -o /boot/grub2/grub.cfg #-o 后接 grub.cfg文件在本机路径
+grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+#重启服务器
+reboot
+#进入系统后，若失效，则执行
+cpupower -c all frequency-set -g performance设置cpu的所有核为性能模式
+#使用命令turbostat 1检查cpu的所有核的实际运行频率
+</code></pre>
+<h3 id="升级gcc和glibc版本，系统自带的gcc版本一般较低"><a href="#升级gcc和glibc版本，系统自带的gcc版本一般较低" class="headerlink" title="升级gcc和glibc版本，系统自带的gcc版本一般较低"></a>升级gcc和glibc版本，系统自带的gcc版本一般较低</h3><h3 id="绑核设置"><a href="#绑核设置" class="headerlink" title="绑核设置"></a>绑核设置</h3><pre><code class="language-bash"># 在配置文件中修改copies和thread以及相应的绑核
+# 通过taskset numactl做绑核设置，单核不做绑核会一直换核心
+# 测试指令前加taskset -c CPU核心数：
+taskset -c 5 runcpu --config=test.cfg --tune=base --iterations=1 --threads=1 600.perlbench_s 602.gcc_s 605.mcf_s 620.omnetpp_s 623.xalancbmk_s 625.x264_s 631.deepsjeng_s 641.leela_s 648.exchange2_s 657.xz_s
+# numactl -C：用于指定要绑定的 CPU 核心编号: 测试指令前加numactl -c CPU核心数
+yum install numactl -y
+dmesg | grep -i numa
+# 查看输出结果： 如果输出结果为： No NUMA configuration found 说明numa为disable，如果不是上面的内容说明numa为enable
+# 测试指令前加numactl -c CPU核心数:
+</code></pre>
+<h3 id="编译参数优化"><a href="#编译参数优化" class="headerlink" title="编译参数优化"></a>编译参数优化</h3><p>如下为SPECcpu2017 Rate FP的优化参数： OPTIMIZE &#x3D; -Ofast -g -pipe -mcpu&#x3D;cortex-a72+crypto+crc -march&#x3D;armv8-a+crypto+crc -funroll-loops Int和fp的编译参数不一样，具体参考cfg附件内相关部分内容</p>
+<h3 id="透明大页"><a href="#透明大页" class="headerlink" title="透明大页"></a>透明大页</h3><pre><code class="language-bash"># 进行SpeedFp的时候需要设置以下3个变量，关闭THP透传大页后再运行，以优化性能
+export OMP_STACKSIZE=1G
+export OMP_WAIT_POLICY=active
+export OMP_PROC_BIND=true
+echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled
+echo never &gt; /sys/kernel/mm/transparent_hugepage/defrag
+</code></pre>
+<h2 id="国内外CPU技术发展趋势"><a href="#国内外CPU技术发展趋势" class="headerlink" title="国内外CPU技术发展趋势"></a>国内外CPU技术发展趋势</h2><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/N8lYbFoa4o4qVxxmWgFcvicqn1b.png" src-width="2560" src-height="1440" align="center"/>
+
+<hr>
+<h2 id="📚-参考资料"><a href="#📚-参考资料" class="headerlink" title="📚 参考资料"></a>📚 参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.intel.com/content/www/us/en/products/details/processors/xeon.html">Intel Xeon官方文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.amd.com/en/processors/epyc">AMD EPYC官方文</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.nextplatform.com/2021/04/19/deep-dive-into-intels-ice-lake-xeon-sp-architecture/">深入了解intel icelake架构</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.intel.com/content/www/us/en/developer/articles/technical/fourth-generation-xeon-scalable-family-overview.html">The 4th Gen Intel® Xeon® Scalable处理概览</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/s321GegSdIB8dSa9StOYKg">英特尔6代cpu介绍</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>wangjun
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器CPU知识手册">https://crayonw.github.io/2025/05/30/服务器CPU知识手册/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8CPU/" rel="tag"># 服务器CPU</a>
+              <a href="/tags/cpu%E6%9E%B6%E6%9E%84/" rel="tag"># cpu架构</a>
+              <a href="/tags/cpu%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0/" rel="tag"># cpu性能参数</a>
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" rel="tag"># 服务器硬件</a>
+              <a href="/tags/cpu%E6%B5%8B%E8%AF%95%E8%B0%83%E4%BC%98/" rel="tag"># cpu测试调优</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/05/26/lspci%E5%91%BD%E4%BB%A4%E4%BD%BF%E7%94%A8%E5%92%8C%E8%A7%A3%E6%9E%90/" rel="prev" title="lspci命令使用和解析">
+                  <i class="fa fa-angle-left"></i> lspci命令使用和解析
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" rel="next" title="服务器GPU知识手册">
+                  服务器GPU知识手册 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2025 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">CrayonW</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+<div id="typing-wrapper" data-text="CrayonW" style="display:none;"></div>
+<style>
+/* 手动日夜模式：通过 data-theme 属性强制切换 */
+[data-theme="dark"] {
+  --body-bg-color: #282828 !important;
+  --content-bg-color: #333 !important;
+  --card-bg-color: #555 !important;
+  --text-color: #ccc !important;
+  --text-color-secondary: #bbb !important;
+  --blockquote-color: #999 !important;
+  --link-color: #abc !important;
+  --link-color-hover: #cde !important;
+  --brand-color: #ccc !important;
+  --brand-color-hover: #ddd !important;
+  --table-row-odd-bg-color: #303030 !important;
+  --table-row-hover-bg-color: #353535 !important;
+  --menu-item-bg-color: #333 !important;
+  --btn-bg: #555 !important;
+  --btn-color: #ccc !important;
+  --btn-border-color: #555 !important;
+}
+</style>
+<script>
+(function() {
+  // 打字动画
+  var typingWrapper = document.getElementById('typing-wrapper');
+  if (typingWrapper && window.location.pathname === '/') {
+    typingWrapper.style.display = 'flex';
+    var text = typingWrapper.getAttribute('data-text') || 'CrayonW';
+    typingWrapper.innerHTML = '';
+    for (var i = 0; i < text.length; i++) {
+      var span = document.createElement('span');
+      span.className = 'typing-char';
+      span.textContent = text[i];
+      span.style.animationDelay = (i * 0.12) + 's';
+      typingWrapper.appendChild(span);
+    }
+    var cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    typingWrapper.appendChild(cursor);
+  }
+
+  // === 日夜切换（使用 data-theme 属性） ===
+  var saved = localStorage.getItem('nexst-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  if (!document.getElementById('darkmode-toggle')) {
+    var btn = document.createElement('div');
+    btn.id = 'darkmode-toggle';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', '日夜模式切换');
+    btn.innerHTML = '<i class="fa fa-adjust"></i>';
+    btn.style.cssText = 'position:fixed;bottom:70px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--btn-bg,#333);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:all .3s;opacity:.8;';
+    btn.onmouseover = function() { this.style.opacity = '1'; };
+    btn.onmouseout = function() { this.style.opacity = '.8'; };
+    btn.onclick = function() {
+      var html = document.documentElement;
+      var isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        localStorage.removeItem('nexst-theme');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('nexst-theme', 'dark');
+      }
+    };
+    document.body.appendChild(btn);
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crayonw.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"remove","padding":18,"offset":12},"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"flat"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文系统讲解服务器内存的核心知识，涵盖基本概念（DRAM、DDR、HBM）、发展历程（HBM技术演进）、硬件组成（channel→DIMM→rank→chip→bank层级结构）、技术特性（ECC校验、Bank Group并行访问、3D堆叠封装）、性能优化（多通道配置、NUMA架构、大页内存）、监控与测试工具（dmidecode&#x2F;memtester&#x2F;numastat&#x2F;AIDA64）、管理维护（热插">
+<meta property="og:type" content="article">
+<meta property="og:title" content="服务器内存知识手册">
+<meta property="og:url" content="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/index.html">
+<meta property="og:site_name" content="Crayon Personal Blog site">
+<meta property="og:description" content="本文系统讲解服务器内存的核心知识，涵盖基本概念（DRAM、DDR、HBM）、发展历程（HBM技术演进）、硬件组成（channel→DIMM→rank→chip→bank层级结构）、技术特性（ECC校验、Bank Group并行访问、3D堆叠封装）、性能优化（多通道配置、NUMA架构、大页内存）、监控与测试工具（dmidecode&#x2F;memtester&#x2F;numastat&#x2F;AIDA64）、管理维护（热插">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-05-30T03:31:00.000Z">
+<meta property="article:modified_time" content="2025-05-30T03:31:00.000Z">
+<meta property="article:author" content="wangjun">
+<meta property="article:tag" content="服务器内存">
+<meta property="article:tag" content="内存技术">
+<meta property="article:tag" content="HBM">
+<meta property="article:tag" content="DDR">
+<meta property="article:tag" content="内存测试">
+<meta property="article:tag" content="内存管理">
+<meta property="article:tag" content="ECC">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/","path":"2025/05/30/服务器内存知识手册/","title":"服务器内存知识手册"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>服务器内存知识手册 | Crayon Personal Blog site</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77MYZYRSES"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-77MYZYRSES","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Crayon Personal Blog site" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Crayon Personal Blog site</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">专注分享计算机技术与行业动态，欢迎关注！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://avatars.githubusercontent.com/u/17792594?v=4&size=64">
+      <meta itemprop="name" content="wangjun">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Crayon Personal Blog site">
+      <meta itemprop="description" content="一个分享信息和计算机知识的个人小站点">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="服务器内存知识手册 | Crayon Personal Blog site">
+      <meta itemprop="description" content="本文系统讲解服务器内存的核心知识，涵盖基本概念（DRAM、DDR、HBM）、发展历程（HBM技术演进）、硬件组成（channel→DIMM→rank→chip→bank层级结构）、技术特性（ECC校验、Bank Group并行访问、3D堆叠封装）、性能优化（多通道配置、NUMA架构、大页内存）、监控与测试工具（dmidecode&#x2F;memtester&#x2F;numastat&#x2F;AIDA64）、管理维护（热插拔、云原生内存QoS）及故障诊断（内存泄漏、ECC错误、兼容性问题），并展望DDR5普及、CXL协议、存算一体等技术趋势，是服务器内存技术的综合性知识手册。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          服务器内存知识手册
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-05-30 11:31:00" itemprop="dateCreated datePublished" datetime="2025-05-30T11:31:00+08:00">2025-05-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">服务器硬件</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">本文系统讲解服务器内存的核心知识，涵盖基本概念（DRAM、DDR、HBM）、发展历程（HBM技术演进）、硬件组成（channel→DIMM→rank→chip→bank层级结构）、技术特性（ECC校验、Bank Group并行访问、3D堆叠封装）、性能优化（多通道配置、NUMA架构、大页内存）、监控与测试工具（dmidecode/memtester/numastat/AIDA64）、管理维护（热插拔、云原生内存QoS）及故障诊断（内存泄漏、ECC错误、兼容性问题），并展望DDR5普及、CXL协议、存算一体等技术趋势，是服务器内存技术的综合性知识手册。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="服务器内存知识手册"><a href="#服务器内存知识手册" class="headerlink" title="服务器内存知识手册"></a>服务器内存知识手册</h1><p>cpu使用到的内存都必须读入到内存中才能利用，动态随机存取内存Dynamic Random Access Memory,DRAM断电数据就会消失</p>
+<p>DDR：双倍数据传输速度Double Data Rate，可在一次工作周期中进行两次数据的传输</p>
+<p>HBM：高带宽内存High Bankwidth Memory</p>
+<p>多通道：数据是同步写入&#x2F;读出一对内存中，同通道的内存需要完全一致</p>
+<p>SRAM：静态随机存取内存Static Random Access Memory, SRAM用于CPU的L2缓存存在CPU内部</p>
+<p>ROM：只读存储器</p>
+<p>EEPROM&#x2F;FLASH：目前主板BIOS使用的存储件</p>
+<p>FSB：Front Side Bus前端总线速度，cpu中内存控制芯片与内存间的传输速度</p>
+<h2 id="内存发展历程"><a href="#内存发展历程" class="headerlink" title="内存发展历程"></a>内存发展历程</h2><h3 id="HBM发展历程"><a href="#HBM发展历程" class="headerlink" title="HBM发展历程"></a>HBM发展历程</h3><p>2013 年AMD与Skhynix宣布合作开发HBM技术→2015年HBM技术的开端，当时带宽1.0Gbps，容量为2Gb→2018容量提升至8Gb，带宽升至2.4Gbps。它是世界上发展最快的版本，相比前代，每芯片容量翻倍、带宽提升 1.5 倍，热阻也提升了 34%。→2020年容量和带宽达到 16Gb 和 3.2Gbps。其在速度和容量上均有显著增强→2022年带宽提升至 5.6Gbps，SK 海力士实现了全球首次量产。该技术具备 1.5 倍的容量提升、1.8 倍的带宽提升、1.2Hi 连接，还采用了芯片上芯片（On-Die）、先进电源管理（通过 Temp.管理）等技术。→2024年容量达到 24Gb，带宽高达 8.0Gbps。其每芯片容量提升 1.5 倍，带宽提升 1.4 倍，并且热阻改善了 10%，能效达到 0.9x（pJ&#x2F;bit）。→2026年计划在 2026 年推出 HBM4 技术，将在 JEDEC 标准下进行讨论，采用混合键合技术以及逻辑晶圆厂生产。</p>
+<h2 id="内存硬件组成"><a href="#内存硬件组成" class="headerlink" title="内存硬件组成"></a>内存硬件组成</h2><p>从大到小：channel&gt;DIMM&gt;rank&gt;chip&gt;bank&gt;row&#x2F;column</p>
+<p>每个channel可以插两个DIMM，每个DIMM由两个rank构成，8个chip组成一个rank</p>
+<p>内存物理表面小芯片chip，组成一组RANK</p>
+<p>程序中使用的Virtual Memory Address，硬件里的空间是Physical Memory Address</p>
+<p>CPU会通过内存管理单元MMU，将虚拟地址转化位实际的物理地址</p>
+<p>SPD芯片：Serial Presence Detect存储内存参数（容量、频率、时序等），主板通过I2C总线读取，自动配置最佳运行状态</p>
+<h2 id="内存技术特性"><a href="#内存技术特性" class="headerlink" title="内存技术特性"></a>内存技术特性</h2><p>单颗粒密度：制程从90nm到10nm以下，单Die容量持续提升，3D堆叠（HBM专属）通过TSV技术垂直堆叠4-16层Die</p>
+<p>错误校验：ECC，Error-Correcting Code</p>
+<p>封装技术：FBGA（球栅阵列），3D堆叠封装</p>
+<p>Bank Group：DDR5专属，将内存Bank划分为多个Group（如4个Group，每组16个Bank），支持独立访问，并行处理不同Bank的数据，提升并发效率（较DDR4提升30%随机访问性能）</p>
+<p>性能影响：带宽与延迟，容量与密度，功耗与发热，可靠性</p>
+<h2 id="内存性能优化策略"><a href="#内存性能优化策略" class="headerlink" title="内存性能优化策略"></a>内存性能优化策略</h2><p>硬件配置优化：通道配置，容量平衡，频率同步</p>
+<p>系统级优化：NUMA架构，大页内存，内存绑定</p>
+<h2 id="监控工具"><a href="#监控工具" class="headerlink" title="监控工具"></a>监控工具</h2><p>显示内存相关的DMI信息，包括内存插槽数量、已使用插槽、内存类型、容量、速度等<code>dmidecode -t memory</code></p>
+<p>用于测试内存稳定性的工具，通过内存进行一系列的读写测试<code>memtester 1024M 2</code></p>
+<p>用于监控和显示NUMA，Non-Uniform Memory Access，非统一内存访问，系统中内存的使用情况<code>watch -n 2 numastat</code></p>
+<h2 id="内存性能测试工具"><a href="#内存性能测试工具" class="headerlink" title="内存性能测试工具"></a>内存性能测试工具</h2><ul>
+<li>带宽测试：AIDA64 Memory Benchmark（测读写 &#x2F; 复制带宽）、MemTest86（稳定性测试）。</li>
+<li>延迟测试：LatencyMon（测系统内存延迟分布）、Intel Memory Latency Checker（精确测量访问延迟）。</li>
+<li>CPU PMU（性能监控单元）查看内存访问次数、缓存未命中数（如 Linux <code>perf</code>工具）。</li>
+<li>Windows 资源监视器：观察 “内存利用率”“硬错误”（页面调度次数，高值表示内存不足）</li>
+</ul>
+<h2 id="内存管理与维护"><a href="#内存管理与维护" class="headerlink" title="内存管理与维护"></a>内存管理与维护</h2><p>生命周期管理：容量规划，固件升级，兼容性验证</p>
+<p>运维实践：热插拔操作，故障隔离，数据备份（虚拟环境）</p>
+<p>云原生管理：Kubernetes内存Qos，内存超配，容器内存限制</p>
+<h2 id="内存相关故障诊断与排错"><a href="#内存相关故障诊断与排错" class="headerlink" title="内存相关故障诊断与排错"></a>内存相关故障诊断与排错</h2><p>常见故障现象：内存泄漏，ECC错误，兼容性问题</p>
+<p>诊断流程<br>硬件层：内存测试工具<a target="_blank" rel="noopener" href="https://www.memtest86.com/">Memtest86+</a>，Windows Memory Diagnostic<br>系统层：内核日志分析dmesg | grep -i memory，EDAC软件检测<br>应用层：性能分析jprofiler、gperftools<br>典型案例<br>数据库服务器内存使用率异常-优化InnoDB缓冲池大小<br>虚拟化节点内存不足-启用气球驱动回收内存</p>
+<h2 id="内存技术发展趋势"><a href="#内存技术发展趋势" class="headerlink" title="内存技术发展趋势"></a>内存技术发展趋势</h2><p>硬件创新：HBM3，MRAM，3D XPoint</p>
+<p>架构演进：内存池化，内存计算，存算一体</p>
+<p>行业动态：DDR5普及，AI内存需求，绿色计算</p>
+<p>行业标准：<a target="_blank" rel="noopener" href="https://www.jedec.org/standards-documents/docs/jesd79-5b">JEDEC DDR5规范（JESD79-5B）</a>，CXL 3.0协议文档</p>
+<p>内存报错定位参考<a href="HFBDdiZxFoxR3txC8IKcCinFnxf">167 - 福州, 宜春系统下内存报错定位参考</a></p>
+<p>numa技术<a target="_blank" rel="noopener" href="http://mp.weixin.qq.com/s?__biz=MzU3ODg3MDIwOA==&mid=2247485483&idx=1&sn=affd867dc0ada2aa45ff30c208e9ec7b&chksm=fd6f8684ca180f92de56580ede4561f47a6833d04d581ae68932c76413106e17172618683c6d&mpshare=1&scene=24&srcid=0917XcSIl0oZbeI7dUZxwuIA&sharer_shareinfo=3b5032b6ca0f7a453e492043efb692b3&sharer_shareinfo_first=3b5032b6ca0f7a453e492043efb692b3#rd">http://mp.weixin.qq.com/s?__biz=MzU3ODg3MDIwOA==&amp;mid=2247485483&amp;idx=1&amp;sn=affd867dc0ada2aa45ff30c208e9ec7b&amp;chksm=fd6f8684ca180f92de56580ede4561f47a6833d04d581ae68932c76413106e17172618683c6d&amp;mpshare=1&amp;scene=24&amp;srcid=0917XcSIl0oZbeI7dUZxwuIA&amp;sharer_shareinfo=3b5032b6ca0f7a453e492043efb692b3&amp;sharer_shareinfo_first=3b5032b6ca0f7a453e492043efb692b3#rd</a></p>
+<h2 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档:"></a>参考文档:</h2><p><a target="_blank" rel="noopener" href="https://community.fs.com/encyclopedia/server-memory.html">FS Community 服务器内存指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.crucial.com/articles/about-memory/everything-about-ddr5-ram">Crucial DDR5 指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://my.oschina.net/emacs_8177478/blog/15926560">开源中国 内存优化指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/gitblog_00650/article/details/142156744">CSDN MemTester 使用指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.kernel.org/doc/html/latest/admin-guide/mm/memory-faults.html">Linux 内存诊断手册</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.dell.com/support/manuals/en-us/poweredge-r740xd/poweredge-r740xd-owner%27s-manual/ecc-memory-error-management">Dell ECC 错误管理指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cxl.io/wp-content/uploads/2023/04/CXL-3.0-Release.pdf">CXL 3.0 官方文档</a><br> <a target="_blank" rel="noopener" href="https://ieeexplore.ieee.org/document/10010394">IEEE 存算一体白皮书</a><br> <a target="_blank" rel="noopener" href="https://serverfault.com/questions/tagged/memory">服务器内存专题</a><br> <a target="_blank" rel="noopener" href="https://forums.tomshardware.com/forums/server-hardware.31/">服务器内存讨论区</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.nvidia.com/deploy/">NVIDIA GPU内存管理指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.intel.com/content/www/us/en/developer/articles/white-paper.html">Intel内存技术白皮书</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.techpowerup.com/review/amd-epyc-server-architecture/4.html">AMD EPYC 内存架构</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jedec.org/document_search?search_api_views_fulltext=ddr5">JEDEC DDR5 SPD 文档</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>wangjun
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://crayonw.github.io/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" title="服务器内存知识手册">https://crayonw.github.io/2025/05/30/服务器内存知识手册/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98/" rel="tag"># 服务器内存</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E6%8A%80%E6%9C%AF/" rel="tag"># 内存技术</a>
+              <a href="/tags/HBM/" rel="tag"># HBM</a>
+              <a href="/tags/DDR/" rel="tag"># DDR</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E6%B5%8B%E8%AF%95/" rel="tag"># 内存测试</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" rel="tag"># 内存管理</a>
+              <a href="/tags/ECC/" rel="tag"># ECC</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8GPU%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" rel="prev" title="服务器GPU知识手册">
+                  <i class="fa fa-angle-left"></i> 服务器GPU知识手册
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/" rel="next" title="服务器硬件扫盲">
+                  服务器硬件扫盲 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2025 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">CrayonW</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+<div id="typing-wrapper" data-text="CrayonW" style="display:none;"></div>
+<style>
+/* 手动日夜模式：通过 data-theme 属性强制切换 */
+[data-theme="dark"] {
+  --body-bg-color: #282828 !important;
+  --content-bg-color: #333 !important;
+  --card-bg-color: #555 !important;
+  --text-color: #ccc !important;
+  --text-color-secondary: #bbb !important;
+  --blockquote-color: #999 !important;
+  --link-color: #abc !important;
+  --link-color-hover: #cde !important;
+  --brand-color: #ccc !important;
+  --brand-color-hover: #ddd !important;
+  --table-row-odd-bg-color: #303030 !important;
+  --table-row-hover-bg-color: #353535 !important;
+  --menu-item-bg-color: #333 !important;
+  --btn-bg: #555 !important;
+  --btn-color: #ccc !important;
+  --btn-border-color: #555 !important;
+}
+</style>
+<script>
+(function() {
+  // 打字动画
+  var typingWrapper = document.getElementById('typing-wrapper');
+  if (typingWrapper && window.location.pathname === '/') {
+    typingWrapper.style.display = 'flex';
+    var text = typingWrapper.getAttribute('data-text') || 'CrayonW';
+    typingWrapper.innerHTML = '';
+    for (var i = 0; i < text.length; i++) {
+      var span = document.createElement('span');
+      span.className = 'typing-char';
+      span.textContent = text[i];
+      span.style.animationDelay = (i * 0.12) + 's';
+      typingWrapper.appendChild(span);
+    }
+    var cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    typingWrapper.appendChild(cursor);
+  }
+
+  // === 日夜切换（使用 data-theme 属性） ===
+  var saved = localStorage.getItem('nexst-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  if (!document.getElementById('darkmode-toggle')) {
+    var btn = document.createElement('div');
+    btn.id = 'darkmode-toggle';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', '日夜模式切换');
+    btn.innerHTML = '<i class="fa fa-adjust"></i>';
+    btn.style.cssText = 'position:fixed;bottom:70px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--btn-bg,#333);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:all .3s;opacity:.8;';
+    btn.onmouseover = function() { this.style.opacity = '1'; };
+    btn.onmouseout = function() { this.style.opacity = '.8'; };
+    btn.onclick = function() {
+      var html = document.documentElement;
+      var isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        localStorage.removeItem('nexst-theme');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('nexst-theme', 'dark');
+      }
+    };
+    document.body.appendChild(btn);
+  }
+})();
+</script>
+
+</body>
+</html>

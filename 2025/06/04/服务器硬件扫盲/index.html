@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/cover/favicon.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"crayonw.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"remove","padding":18,"offset":12},"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"flat"},"fold":{"enable":false,"height":500},"language":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文系统讲解服务器硬件的基础与核心知识，涵盖服务器基本介绍（爆炸图解析、分类标准）、核心组成部件（CPU&#x2F;内存&#x2F;硬盘&#x2F;PSU&#x2F;网卡的参数与功能）、外部设计（机架式服务器接口与扩展）、主板架构（双CPU互联、BMC管理芯片）及扩展知识（GPU服务器设计难点、硬件与软件关联），并附U位、x86架构、OCP网卡等关键术语解释，是服务器硬件入门的综合性扫盲手册。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="服务器硬件扫盲">
+<meta property="og:url" content="https://crayonw.github.io/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/index.html">
+<meta property="og:site_name" content="Crayon Personal Blog site">
+<meta property="og:description" content="本文系统讲解服务器硬件的基础与核心知识，涵盖服务器基本介绍（爆炸图解析、分类标准）、核心组成部件（CPU&#x2F;内存&#x2F;硬盘&#x2F;PSU&#x2F;网卡的参数与功能）、外部设计（机架式服务器接口与扩展）、主板架构（双CPU互联、BMC管理芯片）及扩展知识（GPU服务器设计难点、硬件与软件关联），并附U位、x86架构、OCP网卡等关键术语解释，是服务器硬件入门的综合性扫盲手册。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Cb4ubBLolozWPexK253cf6uqnmb.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LUi2bFFxaoQ3i5xGuZBcCmManbh.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/IPHkbTZCHokqykxWiDocrZMWn2c.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/QeSxbjJ5ioJC7oxHPPlcz1XEnsb.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/UDKFbIlGmoAEjax5NOZca9Aenob.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/JZNAbraIuoKxFsxHXfTcGr3tngd.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Cqt8bZfIdoAQ7KxncIqc89kanUe.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/HaYQbzfGfo3RsuxI7Kqcanvxnle.png">
+<meta property="article:published_time" content="2025-06-04T05:42:28.000Z">
+<meta property="article:modified_time" content="2025-06-04T05:42:28.000Z">
+<meta property="article:author" content="wangjun">
+<meta property="article:tag" content="服务器硬件">
+<meta property="article:tag" content="服务器部件">
+<meta property="article:tag" content="服务器分类">
+<meta property="article:tag" content="U位">
+<meta property="article:tag" content="x86架构">
+<meta property="article:tag" content="GPU服务器">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Cb4ubBLolozWPexK253cf6uqnmb.png">
+
+
+<link rel="canonical" href="https://crayonw.github.io/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://crayonw.github.io/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/","path":"2025/06/04/服务器硬件扫盲/","title":"服务器硬件扫盲"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>服务器硬件扫盲 | Crayon Personal Blog site</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77MYZYRSES"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-77MYZYRSES","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="Crayon Personal Blog site" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Crayon Personal Blog site</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">专注分享计算机技术与行业动态，欢迎关注！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://crayonw.github.io/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://avatars.githubusercontent.com/u/17792594?v=4&size=64">
+      <meta itemprop="name" content="wangjun">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Crayon Personal Blog site">
+      <meta itemprop="description" content="一个分享信息和计算机知识的个人小站点">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="服务器硬件扫盲 | Crayon Personal Blog site">
+      <meta itemprop="description" content="本文系统讲解服务器硬件的基础与核心知识，涵盖服务器基本介绍（爆炸图解析、分类标准）、核心组成部件（CPU&#x2F;内存&#x2F;硬盘&#x2F;PSU&#x2F;网卡的参数与功能）、外部设计（机架式服务器接口与扩展）、主板架构（双CPU互联、BMC管理芯片）及扩展知识（GPU服务器设计难点、硬件与软件关联），并附U位、x86架构、OCP网卡等关键术语解释，是服务器硬件入门的综合性扫盲手册。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          服务器硬件扫盲
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-06-04 13:42:28" itemprop="dateCreated datePublished" datetime="2025-06-04T13:42:28+08:00">2025-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">服务器硬件</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">本文系统讲解服务器硬件的基础与核心知识，涵盖服务器基本介绍（爆炸图解析、分类标准）、核心组成部件（CPU/内存/硬盘/PSU/网卡的参数与功能）、外部设计（机架式服务器接口与扩展）、主板架构（双CPU互联、BMC管理芯片）及扩展知识（GPU服务器设计难点、硬件与软件关联），并附U位、x86架构、OCP网卡等关键术语解释，是服务器硬件入门的综合性扫盲手册。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="服务器硬件扫盲"><a href="#服务器硬件扫盲" class="headerlink" title="服务器硬件扫盲"></a>服务器硬件扫盲</h1><h2 id="一、服务器介绍"><a href="#一、服务器介绍" class="headerlink" title="一、服务器介绍"></a>一、服务器介绍</h2><blockquote>
+<p>目前国内服务器发展受到美国的制裁，在当下这个时间节点下国内的服务器厂商都在全面国产化的道路上奋斗，已经有了显著的成效，国产化服务器在各行各业投入使用，各类新型技术像云计算，大模型等也已经部署在国产服务器上，如今的数据中心国产化的服务器占有率也在不断上升，我们需要对服务器硬件有更加清晰的认识，正视技术之间的差距，不断提升自身的技术能力，没有什么是不能超越的。</p>
+</blockquote>
+<h3 id="服务器爆炸图"><a href="#服务器爆炸图" class="headerlink" title="服务器爆炸图"></a>服务器爆炸图</h3><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Cb4ubBLolozWPexK253cf6uqnmb.png" src-width="846" src-height="852" align="center"/>
+
+<ol>
+<li>机箱上盖，拆解时需要使用十字螺丝刀解锁进行开箱</li>
+<li><u>OCP</u>导风罩，辅助对OCP网卡进行散热</li>
+<li>PSU导风罩，挡住前端CPU散热的废气，PSU内部有自己的散热风扇</li>
+<li>导风罩，扣住整个服务器主要发热部件CPU和内存，来进行风道的控制</li>
+<li>散热器与CPU，对CPU进行散热，拆卸时使用T30的螺丝刀，需要特别</li>
+<li>内存，都是采用双通道的设计</li>
+<li>风扇，采用六风扇组，每个风扇内有前后两片扇叶</li>
+<li>PCIE卡，可以是网卡，raid卡，ib卡等一些扩展卡</li>
+<li>电源，采用双PSU电源设计</li>
+<li>2.5寸硬盘</li>
+<li>3.5寸硬盘</li>
+<li>3.5寸硬盘</li>
+<li>机箱</li>
+<li>3.5寸硬盘</li>
+</ol>
+<h3 id="服务器分类"><a href="#服务器分类" class="headerlink" title="服务器分类"></a>服务器分类</h3><blockquote>
+<p>想要了解更加详细的分类可以参看服务器厂商的官网，如：<a target="_blank" rel="noopener" href="https://www.nettrix.com.cn/%EF%BC%8Chttps://www.inspur.com/lcjtww/2521494/zx-server-p/index.html%EF%BC%9B%E5%85%B6%E4%B8%AD%E4%BC%9A%E5%AF%B9%E5%90%84%E7%A7%8D%E7%B1%BB%E5%9E%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%9C%89%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D">https://www.nettrix.com.cn/，https://www.inspur.com/lcjtww/2521494/zx-server-p/index.html；其中会对各种类型服务器有详细介绍</a></p>
+</blockquote>
+<p>按照<u>U位</u>（高度）分类：2U服务器，4U服务器，6U服务器，8U服务器；</p>
+<p>按照外形分类：机架式服务器，塔式服务器，刀片式服务器，高密度服务器；</p>
+<p>按照功能分类：计算服务器，存储服务器，数据库服务器，负载均衡服务器等（这个可以参考云平台部署使用到的服务器）；</p>
+<p>按照架构分类：<u>x86架构</u>服务器，arm架构服务器，RISC架构服务器等（目前主流的服务器是x86，arm服务器比例也在不断上涨）</p>
+<h3 id="核心组成部件"><a href="#核心组成部件" class="headerlink" title="核心组成部件"></a>核心组成部件</h3><p>Cpu：品牌有Intel，AMD，国产海光，龙芯，鲲鹏等，需要关注的参数有核心数量，主频，TDP功耗，PCH芯片，内存通道数，支持内存速度，UPI连接速度，PCIE I&#x2F;O数量以支持多少<u>lanes</u>表示</p>
+<blockquote>
+<p>详细CPU信息可以搜索对应官网文档进行查看</p>
+</blockquote>
+<p>内存：品牌有三星，海力士，关注的参数有品牌，型号，类型，容量大小，速度，内存颗粒，内存结构</p>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/LUi2bFFxaoQ3i5xGuZBcCmManbh.png" src-width="554" src-height="541" align="center"/>
+
+<blockquote>
+<p>数据的临时仓库；计算机中所有的程序运行都在内存中进行，内存对计算机的性能影响非常大；内存的作用用于暂时存放CPU中的运算数据，以及硬盘，网卡等外部存储器交换数据，掉电即丢数据。</p>
+</blockquote>
+<p>硬盘：希捷，西数，恺侠，三星，Intel等，使用上关心容量大小与读写类型，参考图片</p>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/IPHkbTZCHokqykxWiDocrZMWn2c.png" src-width="827" src-height="489" align="center"/>
+
+<blockquote>
+<p>NVMe协议是一个针对基于PCIE的固态硬盘高性能、可扩展的主机控制器接口；NVMe协议支持M.2、U.2、AIC接口，但不能说这些接口的SSD就是nvme硬盘</p>
+</blockquote>
+<p>PSU：长城，冗余电源与单电源，冗余电源支持热插拔，主要参数是功率与类型（交流、直流，高压直流）</p>
+<p>网卡：主要参数：速率（百兆、千兆、万兆），网络数量（2&#x2F;4）、接口类型（电口、光口）（TODO：光模块）</p>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/QeSxbjJ5ioJC7oxHPPlcz1XEnsb.png" src-width="943" src-height="360" align="center"/>
+
+<h2 id="二、-服务器外部设计"><a href="#二、-服务器外部设计" class="headerlink" title="二、 服务器外部设计"></a>二、 服务器外部设计</h2><h3 id="通用机架服务器"><a href="#通用机架服务器" class="headerlink" title="通用机架服务器"></a>通用机架服务器</h3><blockquote>
+<p>采用的是2U的设计，双路的双CPU主板结构，不错的CPU和内存配置，支持多种规格的硬盘盘位的形态（12盘位，24盘位），服务器后背支持多个不同pcie扩展，满足不同客户硬件配置要求</p>
+</blockquote>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/UDKFbIlGmoAEjax5NOZca9Aenob.png" src-width="802" src-height="151" align="center"/>
+
+<p>1–&gt; 电源键；2–&gt;ID按键（用于服务器定位与识别）；3–&gt;TypeC接口（用于厂商人员debug）；4–&gt;USB接口（用于连接键盘，鼠标，u盘等设备）；5–&gt;导轨锁扣（用于把服务器固定在机柜上）</p>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/JZNAbraIuoKxFsxHXfTcGr3tngd.png" src-width="652" src-height="161" align="center"/>
+
+<p>1–&gt;OCP（板载网卡）；2–&gt;VGA接口（用于连接显示器）；3–&gt;USB接口（同上）；4–&gt;管理网口（用于登录BMC通过远程web网页管理和监控服务器硬件状态）；5–&gt;电源；6–&gt;后置扩展HDD（也可以换成其他PCIE卡）；</p>
+<p>各个厂商的服务器差异主要在于对于主板的设计能力，服务器里的可用空间已经很确定，一般不同家的PCIE扩展数量，以及支持硬盘数量可能存在差异，目前相对于服务器厂商更多的是考验研发能力，供货能力以及后期的技术维保能力。</p>
+<p>由于现在大模型的火热，市场对于GPU服务器的需求量增大，GPU服务器相对于传统的2U服务器设计更加复杂，机器的交付和售后维修难度加大，推荐重点关注GPU服务器机型的发展变化。</p>
+<h2 id="三、服务器主板解析"><a href="#三、服务器主板解析" class="headerlink" title="三、服务器主板解析"></a>三、服务器主板解析</h2><img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/Cqt8bZfIdoAQ7KxncIqc89kanUe.png" src-width="1216" src-height="834" align="center"/>
+
+<p>这是Intel CPU服务器主板的架构图，双CPU通过UPI实现高速互联，每个CPU支持8通多，通过cpu内部集成的IMC内存控制器连接，南桥芯片PCH管理芯片，管理低速外设（USB、SATA、SPI等，BMC芯片也是挂载在下面），一级一些silmx接口连接pcie设备，大部分是直接挂载在CPU下的。</p>
+<p>BMC芯片型号AST2600，负责带外管理（IPMI、KVM-over-IP），其中集成了存储（FLASH&#x2F;EMMC）、网络（RTL8211以太控制器）等管理功能。</p>
+<h2 id="四、服务器扩展知识学习"><a href="#四、服务器扩展知识学习" class="headerlink" title="四、服务器扩展知识学习"></a>四、服务器扩展知识学习</h2><blockquote>
+<p>想要深入了解服务器相关知识，可以从GPU服务器基础硬件开始，现在GPU服务器的硬件结构更加复杂，简单分成两层，一层是主板层可以参考2U服务器的设计实现，一层是GPU层相对没有主板层硬件设计复杂，在了解了服务器硬件的基本设计，需要学习linux系统将硬件与软件的关系对应起来，认识服务器在日常使用和维护中需要怎么通过各类手段来进行故障排查，以及问题分析</p>
+</blockquote>
+<img src="https://cdn.jsdelivr.net/gh/CrayonW/note-gen-image-sync@main/HaYQbzfGfo3RsuxI7Kqcanvxnle.png" src-width="630" src-height="554" align="center"/>
+
+<p>GPU服务器，由于CPU本身的PCIE通道数存在数量限制，而GPU在实际运算的过程中更多的是GPU与GPU之间沟通数据，英伟达设计使用了交换芯片来扩展服务器支持的PCIE设备数量，且能提高GPU与GPU之间的数据速率。目前GPU服务器的性能更多的是由于大量GPU集群之间数据交换的速率受限导致的，英伟达的核心</p>
+<div class="callout callout-bg-2 callout-border-2">
+<div class='callout-emoji'></div>
+<p>名词解释</p>
+<ol>
+<li><p><em>U位（unit的简称），在数据中心机柜内是一种表示服务器外部尺寸的单位，由美国电子工业协会（EIA）规定服务器的宽（48.26cm＝19英寸）与高（4.445cm的倍数）；由于宽为19英寸，所以有时也将满足这一规定的机架称为“19英寸机架”，厚度以4.445cm为基本单位；1U是4.445cm，2U则是1U的2倍（4.445*2=8.89cm），以此类推。</em></p>
+</li>
+<li><p><em>X86架构是一种微处理器执行的计算机指令集，也是intel公司的一个通用计算机系列的标准编号缩写标识，它提供了一套通用的计算机指令集合，可以用来实现复杂的计算任务。ARM，RISC也类似主要是CPU设计的一种指令标准，详细可以进行搜索了解。</em></p>
+</li>
+<li><p><em>OCP 网卡采用专用的 OCP 接口（Open Compute Project Mezzanine Card），常见形态为夹层卡（Mezzanine Card），可直接插入服务器主板的 OCP 插槽，相比传统 PCIe 网卡更节省空间，且支持热插拔。</em></p>
+</li>
+<li><p><em>lane 在 PCIe（Peripheral Component Interconnect Express）总线中，Lane（通道）是最基本的物理传输单元，类似于高速公路上的独立车道。每个 Lane 负责双向串行数据传输，多个 Lane 可并联组成更高带宽的传输通道（如 x1、x4、x8、x16 等）。</em></p>
+</li>
+</ol>
+</div>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>wangjun
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://crayonw.github.io/2025/06/04/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6%E6%89%AB%E7%9B%B2/" title="服务器硬件扫盲">https://crayonw.github.io/2025/06/04/服务器硬件扫盲/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%A1%AC%E4%BB%B6/" rel="tag"># 服务器硬件</a>
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E9%83%A8%E4%BB%B6/" rel="tag"># 服务器部件</a>
+              <a href="/tags/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%88%86%E7%B1%BB/" rel="tag"># 服务器分类</a>
+              <a href="/tags/U%E4%BD%8D/" rel="tag"># U位</a>
+              <a href="/tags/x86%E6%9E%B6%E6%9E%84/" rel="tag"># x86架构</a>
+              <a href="/tags/GPU%E6%9C%8D%E5%8A%A1%E5%99%A8/" rel="tag"># GPU服务器</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/05/30/%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%86%85%E5%AD%98%E7%9F%A5%E8%AF%86%E6%89%8B%E5%86%8C/" rel="prev" title="服务器内存知识手册">
+                  <i class="fa fa-angle-left"></i> 服务器内存知识手册
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2025 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">CrayonW</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+<div id="typing-wrapper" data-text="CrayonW" style="display:none;"></div>
+<style>
+/* 手动日夜模式：通过 data-theme 属性强制切换 */
+[data-theme="dark"] {
+  --body-bg-color: #282828 !important;
+  --content-bg-color: #333 !important;
+  --card-bg-color: #555 !important;
+  --text-color: #ccc !important;
+  --text-color-secondary: #bbb !important;
+  --blockquote-color: #999 !important;
+  --link-color: #abc !important;
+  --link-color-hover: #cde !important;
+  --brand-color: #ccc !important;
+  --brand-color-hover: #ddd !important;
+  --table-row-odd-bg-color: #303030 !important;
+  --table-row-hover-bg-color: #353535 !important;
+  --menu-item-bg-color: #333 !important;
+  --btn-bg: #555 !important;
+  --btn-color: #ccc !important;
+  --btn-border-color: #555 !important;
+}
+</style>
+<script>
+(function() {
+  // 打字动画
+  var typingWrapper = document.getElementById('typing-wrapper');
+  if (typingWrapper && window.location.pathname === '/') {
+    typingWrapper.style.display = 'flex';
+    var text = typingWrapper.getAttribute('data-text') || 'CrayonW';
+    typingWrapper.innerHTML = '';
+    for (var i = 0; i < text.length; i++) {
+      var span = document.createElement('span');
+      span.className = 'typing-char';
+      span.textContent = text[i];
+      span.style.animationDelay = (i * 0.12) + 's';
+      typingWrapper.appendChild(span);
+    }
+    var cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    typingWrapper.appendChild(cursor);
+  }
+
+  // === 日夜切换（使用 data-theme 属性） ===
+  var saved = localStorage.getItem('nexst-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  if (!document.getElementById('darkmode-toggle')) {
+    var btn = document.createElement('div');
+    btn.id = 'darkmode-toggle';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', '日夜模式切换');
+    btn.innerHTML = '<i class="fa fa-adjust"></i>';
+    btn.style.cssText = 'position:fixed;bottom:70px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--btn-bg,#333);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:all .3s;opacity:.8;';
+    btn.onmouseover = function() { this.style.opacity = '1'; };
+    btn.onmouseout = function() { this.style.opacity = '.8'; };
+    btn.onclick = function() {
+      var html = document.documentElement;
+      var isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        localStorage.removeItem('nexst-theme');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('nexst-theme', 'dark');
+      }
+    };
+    document.body.appendChild(btn);
+  }
+})();
+</script>
+
+</body>
+</html>
